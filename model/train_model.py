@@ -1,7 +1,6 @@
 import os
 import sys
 
-
 cuda_bin_path = os.path.join(os.getcwd(), '.venv', 'Lib', 'site-packages', 'nvidia', 'cudnn', 'bin')
 if os.path.exists(cuda_bin_path):
     os.environ['PATH'] = cuda_bin_path + os.pathsep + os.environ['PATH']
@@ -25,10 +24,12 @@ print("-" * 50)
 
 import pandas as pd
 import numpy as np
-from tensorflow.keras.models import Sequential
+# MİMARİ İÇİN GEREKLİ KÜTÜPHANELER GÜNCELLENDİ (Model, MultiHeadAttention, LayerNorm vb. eklendi)
+from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (
-    Input, Conv1D, MaxPooling1D, LSTM, Dense,
-    Dropout, BatchNormalization, Bidirectional
+    Input, Conv1D, MaxPooling1D, Dense,
+    Dropout, BatchNormalization, MultiHeadAttention,
+    LayerNormalization, Add, GlobalAveragePooling1D
 )
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from sklearn.preprocessing import StandardScaler
@@ -42,7 +43,6 @@ import seaborn as sns
 
 print("Anti-Spoofing Modeli Baslatiliyor...")
 print("-" * 50)
-
 
 file_normal = "egitim_normal.csv"
 file_spoof = "egitim_spoofing.csv"
@@ -58,14 +58,12 @@ df_normal = pd.read_csv(file_normal)
 df_spoof = pd.read_csv(file_spoof)
 df_test = pd.read_csv(file_test)
 
-
 features = [c for c in df_normal.columns if c != 'Label']
 
 print(f"Feature'lar: {features}")
 print(f"Normal egitim: {len(df_normal)} satir")
 print(f"Spoofing egitim: {len(df_spoof)} satir")
 print(f"Test senaryosu: {len(df_test)} satir")
-
 
 print("\nNormalizasyon uygulaniyor...")
 scaler = StandardScaler()
@@ -83,7 +81,6 @@ scaled_test = scaler.transform(df_test[features])
 
 print(f"Scaler ortalamalar: {scaler.mean_}")
 print(f"Scaler std: {scaler.scale_}")
-
 
 TIME_STEPS = 30
 
@@ -112,29 +109,44 @@ print(f"Test pencere sayisi: {len(X_test_seq)}")
 print(f"Giris boyutu: ({TIME_STEPS}, {n_features})")
 
 
-print("\nModel mimarisi olusturuluyor...")
+print("\nModel mimarisi olusturuluyor (1D CNN + Transformer Encoder)...")
 
-model = Sequential([
-    Input(shape=(TIME_STEPS, n_features)),
+# YENİ MİMARİ: Keras Functional API ile 1D CNN + Transformer
+inputs = Input(shape=(TIME_STEPS, n_features))
 
-    # 1D CNN - yerel oruntu cikarimi
-    Conv1D(filters=64, kernel_size=5, activation='relu'),
-    BatchNormalization(),
-    Conv1D(filters=128, kernel_size=3, activation='relu'),
-    BatchNormalization(),
-    MaxPooling1D(pool_size=2),
-    Dropout(0.3),
+# --- 1. AŞAMA: 1D CNN (Yerel Örüntü ve Gürültü Filtreleme) ---
+x = Conv1D(filters=64, kernel_size=5, activation='relu', padding='same')(inputs)
+x = BatchNormalization()(x)
+x = Conv1D(filters=128, kernel_size=3, activation='relu', padding='same')(x)
+x = BatchNormalization()(x)
+x = MaxPooling1D(pool_size=2)(x)
+x = Dropout(0.3)(x)
 
-    # Bidirectional LSTM - zamansal bagimliliklar
-    Bidirectional(LSTM(128, return_sequences=False)),
-    Dropout(0.4),
+# --- 2. AŞAMA: TRANSFORMER ENCODER (Global Bağlam ve Attention) ---
+# Multi-Head Self Attention Katmanı
+attention_output = MultiHeadAttention(num_heads=4, key_dim=128)(x, x)
+x = Add()([x, attention_output]) # Residual (Artık) Bağlantı
+x = LayerNormalization(epsilon=1e-6)(x)
 
-    # Siniflandirici
-    Dense(64, activation='relu'),
-    BatchNormalization(),
-    Dropout(0.3),
-    Dense(1, activation='sigmoid')
-])
+# Feed Forward Network (FFN)
+ffn_output = Dense(128, activation='relu')(x)
+ffn_output = Dropout(0.2)(ffn_output)
+x = Add()([x, ffn_output]) # Residual (Artık) Bağlantı
+x = LayerNormalization(epsilon=1e-6)(x)
+
+# --- 3. AŞAMA: SINIFLANDIRICI (Classifier) ---
+# Zaman serisindeki tüm matrisi tek bir vektöre özetle
+x = GlobalAveragePooling1D()(x)
+x = Dropout(0.4)(x)
+
+x = Dense(64, activation='relu')(x)
+x = BatchNormalization()(x)
+x = Dropout(0.3)(x)
+
+outputs = Dense(1, activation='sigmoid')(x)
+
+# Modeli İnşa Et
+model = Model(inputs=inputs, outputs=outputs)
 
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
@@ -143,7 +155,6 @@ model.compile(
 )
 
 model.summary()
-
 
 print("\nEgitim basliyor...")
 
@@ -171,7 +182,6 @@ history = model.fit(
     callbacks=callbacks,
     verbose=1
 )
-
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
