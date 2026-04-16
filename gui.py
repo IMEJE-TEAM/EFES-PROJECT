@@ -33,33 +33,34 @@ class DataWorker(QObject):
             score = float(prediction[0][0])
 
             self.data_ready.emit(score, list(new_row))
+class PgGraph(pg.PlotWidget):
+    def __init__(self, left_name:str, bottom_name:str):
+        super().__init__()
+        self.setBackground('#1e1e2f')
+        self.showGrid(x=True, y=True, alpha=0.3)
+        self.setLabel('left', left_name)
+        self.setLabel('bottom', bottom_name)
+        
+        kalem = pg.mkPen(color=(0, 255, 255), width=3)
+        self.data = [0] * 1000
+        self.cizgi = self.plot(self.data, pen=kalem)
+        self.cizgi.setFillLevel(0)
+        self.cizgi.setBrush(pg.mkBrush(color=(0, 255, 255, 50)))
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Model")
-        self.resize(800,600)
+        self.resize(1280,720)
         
         self.load_model_scaler()
         
         main_widget = QWidget(self)
-        main_layout = QVBoxLayout()
+        self.main_layout = QVBoxLayout()
 
-        pg.setConfigOptions(antialias=True)
-        self.graph = pg.PlotWidget()
-        self.graph.setBackground('#1e1e2f')
-        self.graph.showGrid(x=True, y=True, alpha=0.3)
-        self.graph.setLabel('left', 'Sensör Değeri')
-        self.graph.setLabel('bottom', 'Zaman Çizelgesi')
-        
-        kalem = pg.mkPen(color=(0, 255, 255), width=3)
-        self.starter_data = [0] * 1000
-        self.cizgi = self.graph.plot(self.starter_data, pen=kalem)
-        self.cizgi.setFillLevel(0)
-        self.cizgi.setBrush(pg.mkBrush(color=(0, 255, 255, 50)))
+        self.graph_create_add()
 
-        main_layout.addWidget(self.graph)
-        main_widget.setLayout(main_layout)
+        main_widget.setLayout(self.main_layout)
         self.setCentralWidget(main_widget)
 
         self.Thread()
@@ -71,7 +72,7 @@ class MainWindow(QMainWindow):
         
         self.data_worker.moveToThread(self.kanal)
         self.timer = QTimer()
-        self.timer.setInterval(1)
+        self.timer.setInterval(50)
         self.timer.moveToThread(self.kanal)
         self.timer.timeout.connect(self.data_worker.process_data)
 
@@ -80,10 +81,20 @@ class MainWindow(QMainWindow):
         self.kanal.started.connect(self.timer.start)
         self.kanal.start()
 
+    def graph_create_add(self):
+        pg.setConfigOptions(antialias=True)
+        graph_name = ["Mean_cno","std_cno","mean_prRes","std_prRes","max_prRes","num_used","num_visible","cno_elev_ratio"]
+        self.graph_list = []
+        for name in graph_name:
+            self.graph_list.append(PgGraph(name, "Zaman"))
+        for graph in self.graph_list:
+            self.main_layout.addWidget(graph)
+
     def graph_update(self, oran, liste):
-        self.starter_data.pop(0)
-        self.starter_data.append(liste[0])
-        self.cizgi.setData(self.starter_data)
+        for i, value in enumerate(liste):
+            self.graph_list[i].data.pop(0)
+            self.graph_list[i].data.append(value)
+            self.graph_list[i].cizgi.setData(self.graph_list[i].data)
         if oran > 0.5:
             self.setWindowTitle(f"UYARI: SALDIRI TESPİT EDİLDİ! (%{oran*100:.2f})")
         else:
