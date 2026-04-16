@@ -45,6 +45,15 @@ class PgGraph(pg.PlotWidget):
         self.data = np.zeros(1000)
         self.cizgi = self.plot(self.data, pen=kalem)
         self.getPlotItem().getViewBox().setMouseEnabled(x=False, y=False)
+
+    def set_theme(self, is_dark: bool):
+        if is_dark:
+            self.setBackground('#1e1e2f')
+            self.showGrid(x=True, y=True, alpha=0.3)
+        else:
+            self.setBackground('#f0f0f5')
+            self.showGrid(x=True, y=True, alpha=0.3)
+            
 class Engine():
     def Thread(self):
         #Thread
@@ -53,7 +62,7 @@ class Engine():
             
         self.data_worker.moveToThread(self.kanal)
         self.timer = QTimer()
-        self.timer.setInterval(50)
+        self.timer.setInterval(1)
         self.timer.moveToThread(self.kanal)
         self.timer.timeout.connect(self.data_worker.process_data)
 
@@ -63,11 +72,30 @@ class Engine():
         self.kanal.start()
 
     def graph_create_add(self):
-        graph_name = ["Mean_cno","std_cno","mean_prRes","std_prRes","max_prRes","num_used","num_visible","cno_elev_ratio"]
+        from PyQt6.QtWidgets import QLabel
+        
+        # Grafik isimleri ve açıklamaları
+        graph_details = [
+            ("Mean_cno", "Ortalama C/N0 (Sinyal Gücü) - Spoofing anında sert düşüşler yaşanabilir"),
+            ("std_cno", "C/N0 Standart Sapması - Sinyal kalite kararsızlığını ve dalgalanmasını gösterir"),
+            ("mean_prRes", "Pseudorange Residual (Ortalama) - Uydu mesafe hesaplamasındaki uyumsuzlukları saptar"),
+            ("std_prRes", "Pseudorange Residual (Sapma) - Hesaplama hatalarının veya sahte sinyallerin tespiti"),
+            ("max_prRes", "Maksimum Pseudorange Hatası - Konumdaki ani zıplamalarda ve saldırılarda pik yapar"),
+            ("num_used", "Kullanılan Uydu Sayısı - Saldırı esnasında alıcının uydu kaybetmesi durumunu izler"),
+            ("num_visible", "Gökyüzünde Görünür Uydu Sayısı - Cihazın gördüğü toplam sinyal kaynağı"),
+            ("cno_elev_ratio", "Sinyal / Yükseklik Oranı - Doğal olmayan (ör. yerden gelen) sinyalleri ayırt eder")
+        ]
+        
         self.graph_list = []
-        for name in graph_name:
-            self.graph_list.append(PgGraph(name, "Zaman"))
-        for graph in self.graph_list:
+        for name, desc in graph_details:
+            # Her grafikten önce arayüze açıklama metni ekliyoruz
+            lbl = QLabel(f"📍 {name} | {desc}")
+            lbl.setStyleSheet("color: #a0a0c0; font-size: 14px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
+            self.main_layout.addWidget(lbl)
+            
+            # Grafiği oluşturup ekliyoruz
+            graph = PgGraph(name, "Zaman")
+            self.graph_list.append(graph)
             self.main_layout.addWidget(graph)
 
     def graph_update(self, oran, vektor):
