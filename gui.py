@@ -10,6 +10,27 @@ from tensorflow.keras.models import load_model
 from collections import deque
 from PyQt6.QtCore import *
 from PyQt6.QtWidgets import *
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+# Eğer TensorFlow hatası alıyorsan bunu da ekle:
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+from PyQt6.QtCore import *
+import pyqtgraph as pg
+# Kimsenin bilgisayarını bozmayacak, dinamik yol bulucu
+if sys.platform == 'win32':
+    # Python'un kurulu olduğu ana dizini bulur (Anaconda veya düz Python fark etmez)
+    base_path = os.path.dirname(sys.executable)
+    dll_paths = [
+        base_path,
+        os.path.join(base_path, "Library", "bin"),
+        os.path.join(base_path, "Scripts")
+    ]
+    for path in dll_paths:
+        if os.path.exists(path):
+            os.add_dll_directory(path)
+
+
 
 class DataWorker(QObject):
     data_ready = pyqtSignal(float, list)
@@ -110,3 +131,5 @@ if __name__ == "__main__":
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
+
+    #YAZILIMINI SİKTİĞİM
