@@ -39,9 +39,9 @@ class DashboardPage(QWidget):
         info_title.setObjectName("info_title")
         
         info_text = QLabel(
-            "Bu sistem, GNSS/GPS alıcılarından alınan sinyal verilerini kullanarak CRNN-LSTM derin öğrenme mimarisi ile sahte sinyalleri (Spoofing) saptar.\n\n"
+            "Bu sistem, GNSS/GPS alıcılarından alınan sinyal verilerini kullanarak CRNN-TRANSFORMER derin öğrenme mimarisi ile sahte sinyalleri (Spoofing) saptar.\n\n"
             "1️⃣ 1D-CNN (Uzamsal Özellik Çıkarımı): Sinyal kalitesi (C/N0), uydudan olan mesafe hataları (Pseudorange) gibi değerlerden anomali örüntülerini kısa bir sürede öğrenir.\n\n"
-            "2️⃣ LSTM (Zamansal Bağlantı Analizi): Zaman serisi halindeki 30 ardışık verinin dünden bugüne olan hafızasını tutar, GPS kopmalarındaki / bozulmalarındaki gariplikleri analiz edip saldırıya karar verir."
+            "2️⃣ TRANSFORMER (Zamansal Bağlantı Analizi): Zaman serisi halindeki 30 ardışık verinin dünden bugüne olan hafızasını tutar, GPS kopmalarındaki / bozulmalarındaki gariplikleri analiz edip saldırıya karar verir."
         )
         info_text.setWordWrap(True)
         info_text.setObjectName("info_text")
