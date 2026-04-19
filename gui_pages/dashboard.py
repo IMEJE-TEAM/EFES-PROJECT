@@ -10,11 +10,12 @@ class RadarWidget(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.rotate)
         self.timer.start(40)
-        self.setMinimumSize(320, 320)
+        self.setMinimumSize(220, 220)
 
     def rotate(self):
         self.angle = (self.angle + 3) % 360
-        self.update()
+        if self.isVisible():
+            self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -89,21 +90,18 @@ class DashboardPage(QWidget):
         page_layout.addWidget(scroll_area, stretch=3) # Grafikler yatayda daha geniş yer kaplasın
 
         # SAĞ TARAF: Canlı Bilgi & Model Anlatım Paneli
-        info_scroll = QScrollArea()
-        info_scroll.setWidgetResizable(True)
-        info_scroll.setFixedWidth(340)
-        info_scroll.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
-
         info_panel = QFrame()
         info_panel.setObjectName("info_panel")
+        info_panel.setFixedWidth(280)
         
         info_layout = QVBoxLayout(info_panel)
-        info_layout.setContentsMargins(20, 20, 20, 20)
-        info_layout.setSpacing(20)
+        info_layout.setContentsMargins(15, 15, 15, 15)
+        info_layout.setSpacing(12)
 
         # 1. Canlı Özellik (Feature) Dağılımları
         feat_title = QLabel("CANLI ÖZELLİK DAĞILIMI")
         feat_title.setObjectName("feat_title")
+        feat_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #39ff14;")
         info_layout.addWidget(feat_title)
 
         self.main_window.live_feat_bars = []
@@ -141,16 +139,17 @@ class DashboardPage(QWidget):
         info_layout.addWidget(line)
 
         # 2. Model Çalışma Mantığı ve Özellikler
-        info_title = QLabel("MODEL NASIL ÇALIŞIR?")
+        info_title = QLabel("SİSTEM ÇALIŞMA MANTIĞI")
         info_title.setObjectName("info_title")
         
         info_text = QLabel(
-            "Bu sistem, GNSS/GPS alıcılarından alınan sinyal verilerini kullanarak CRNN-TRANSFORMER derin öğrenme mimarisi ile sahte sinyalleri (Spoofing) saptar.\n\n"
-            "1️⃣ 1D-CNN (Uzamsal Özellik Çıkarımı): Sinyal kalitesi (C/N0), uydudan olan mesafe hataları (Pseudorange) gibi değerlerden anomali örüntülerini kısa bir sürede öğrenir.\n\n"
-            "2️⃣ TRANSFORMER (Zamansal Bağlantı Analizi): Zaman serisi halindeki 30 ardışık verinin dünden bugüne olan hafızasını tutar, GPS kopmalarındaki / bozulmalarındaki gariplikleri analiz edip saldırıya karar verir."
+            "SİPER TAKTİK KONTROL - EH TESPİT SİSTEMİ\n\n"
+            "[+] 1D-CNN (SİNYAL İŞLEME): GNSS alıcısından alınan ham verilerdeki (C/N0, Pseudorange Residual) anlık sinyal bozulumlarını ve uzamsal anomalileri tespit eder.\n\n"
+            "[+] TRANSFORMER (ZAMANSAL İZLEME): Ardışık zaman adımlarındaki telemetri matrisini analiz ederek, doğal olmayan sinyal sıçramalarını ve elektronik harp (Spoofing) saldırılarını yüksek hassasiyetle sınıflandırır."
         )
         info_text.setWordWrap(True)
         info_text.setObjectName("info_text")
+        info_text.setStyleSheet("font-size: 11px;")
         
         info_layout.addWidget(info_title)
         info_layout.addWidget(info_text)
@@ -168,5 +167,4 @@ class DashboardPage(QWidget):
 
         info_layout.addWidget(radar_card)
         info_layout.addStretch()
-        info_scroll.setWidget(info_panel)
-        page_layout.addWidget(info_scroll, stretch=1)
+        page_layout.addWidget(info_panel, alignment=Qt.AlignmentFlag.AlignTop)
