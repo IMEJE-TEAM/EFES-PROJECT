@@ -52,30 +52,30 @@ class MainWindow(QMainWindow, Engine):
             logo_label.setAlignment(Qt.AlignCenter)
             sidebar_layout.addWidget(logo_label)
 
-        app_title = QLabel("SIPER Saldırı Tespit Sistemi")
+        app_title = QLabel("SİPER TAKTİK\nKOMUTA KONTROL")
         app_title.setObjectName("app_title")
         app_title.setWordWrap(True)
         app_title.setFixedHeight(60)
         app_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sidebar_layout.addWidget(app_title)
 
-        self.btn_dashboard = QPushButton(" Canlı İzleme (Dashboard)")
+        self.btn_dashboard = QPushButton(" [01] TAKTİK EKRAN")
         self.btn_dashboard.setCheckable(True)
         self.btn_dashboard.setChecked(True)
         
-        self.btn_model = QPushButton(" Model Başarı Analizleri")
+        self.btn_model = QPushButton(" [02] SİSTEM ANALİZİ")
         self.btn_model.setCheckable(True)
 
-        self.btn_logs = QPushButton(" Log Yönetimi")
+        self.btn_logs = QPushButton(" [03] SİSTEM LOGLARI")
         self.btn_logs.setCheckable(True)
 
-        self.btn_iha = QPushButton(" İHA Durum")
+        self.btn_iha = QPushButton(" [04] İHA TELEMETRİ")
         self.btn_iha.setCheckable(True)
 
-        self.btn_auto = QPushButton(" Otonom Uçuş & Harita")
+        self.btn_auto = QPushButton(" [05] OTONOM NAVİGASYON")
         self.btn_auto.setCheckable(True)
 
-        self.btn_config = QPushButton(" Görev & Yapılandırma")
+        self.btn_config = QPushButton(" [06] KONFİGÜRASYON")
         self.btn_config.setCheckable(True)
 
         
@@ -87,13 +87,13 @@ class MainWindow(QMainWindow, Engine):
         
         sidebar_layout.addStretch()
 
-        self.btn_theme = QPushButton("🌙 Aydınlık Moda Geç")
+        self.btn_theme = QPushButton("OPTİK: GÜNDÜZ MODU")
         self.btn_theme.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_theme.clicked.connect(self.toggle_theme)
         self.btn_theme.setObjectName("btn_theme")
         sidebar_layout.addWidget(self.btn_theme)
         
-        version_lbl = QLabel("Model: CRNN-LSTM\nVersiyon: 1.0.3")
+        version_lbl = QLabel("AĞ: CRNN-LSTM AKTİF\nSÜRÜM: MIL-STD-1.0.3\nDURUM: GÜVENLİ")
         version_lbl.setObjectName("version_lbl")
         version_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sidebar_layout.addWidget(version_lbl)
@@ -149,13 +149,13 @@ class MainWindow(QMainWindow, Engine):
         header_layout = QHBoxLayout(self.header_frame)
         
         self.status_icon = QLabel("✓")
-        self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #8afe8a;")
+        self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #39ff14;")
         
-        self.status_label = QLabel("SIPER: İzleme Aktif")
-        self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #8afe8a;")
+        self.status_label = QLabel("SİSTEM DURUMU: NOMİNAL")
+        self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #39ff14; letter-spacing: 1px;")
         
         risk_layout = QVBoxLayout()
-        risk_title = QLabel("Anlık Spoofing / Tehdit Olasılığı:")
+        risk_title = QLabel("TEHDİT SEVİYESİ / ELEKTRONİK HARP RİSKİ:")
         risk_title.setObjectName("risk_title")
         
         self.risk_bar = QProgressBar()
@@ -175,86 +175,86 @@ class MainWindow(QMainWindow, Engine):
 
     def toggle_theme(self):
         self.is_dark = not self.is_dark
-        self.btn_theme.setText("🌙 Aydınlık Moda Geç" if self.is_dark else "🌙 Karanlık Moda Geç")
+        self.btn_theme.setText("OPTİK: GÜNDÜZ MODU" if self.is_dark else "OPTİK: GECE MODU")
         self.apply_theme(self.is_dark)
 
     def apply_theme(self, dark: bool):
         if dark:
             self.setStyleSheet("""
-                QMainWindow { background-color: #0a0a0f; }  /* Daha koyu askeri arka plan */
-                QWidget { color: #c4c4c4; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; }
-                #sidebar { background-color: #151515; border-right: 2px solid #8b0000; }
-                #sidebar QPushButton { background-color: transparent; color: #c4c4c4; border: none; border-radius: 8px; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 15px; }
-                #sidebar QPushButton:hover { background-color: #222222; color: #ffffff; }
-                #sidebar QPushButton:checked { background-color: #1f1f1f; color: #ffffff; border-left: 4px solid #8b0000; }
-                #header_frame { background-color: #101214; border: 2px solid #8b0000; border-radius: 12px; padding: 10px; }
-                QProgressBar { border: 2px solid #8b0000; border-radius: 6px; background-color: #111111; text-align: center; color: #c4c4c4; font-weight: bold; height: 20px; }
-                QProgressBar::chunk { background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #8b0000, stop:1 #4a0000); border-radius: 5px; }
+                QMainWindow { background-color: #050907; }
+                QWidget { color: #39ff14; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; }
+                #sidebar { background-color: #0a120e; border-right: 2px solid #1a3c28; }
+                #sidebar QPushButton { background-color: transparent; color: #558b6e; border: 1px solid transparent; border-radius: 4px; padding: 12px 15px; text-align: left; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
+                #sidebar QPushButton:hover { background-color: #12241b; color: #39ff14; border: 1px solid #1a3c28; }
+                #sidebar QPushButton:checked { background-color: #1a3c28; color: #ffffff; border-left: 4px solid #39ff14; border-right: 1px solid #39ff14; border-top: 1px solid #39ff14; border-bottom: 1px solid #39ff14; }
+                #header_frame { background-color: #08100c; border: 2px solid #1a3c28; border-radius: 0px; padding: 10px; }
+                QProgressBar { border: 1px solid #39ff14; border-radius: 0px; background-color: #050907; text-align: center; color: #39ff14; font-weight: bold; height: 18px; }
+                QProgressBar::chunk { background-color: #39ff14; }
                 QScrollArea { border: none; background-color: transparent; }
                 QStackedWidget > QWidget { background-color: transparent; }
-                QScrollBar:vertical { background: #0a0a0f; width: 10px; border-radius: 5px; }
-                QScrollBar::handle:vertical { background: #555555; border-radius: 5px; }
-                QScrollBar::handle:vertical:hover { background: #777777; }
-                #info_panel { background-color: #161616; border: 1px solid #8b0000; border-radius: 10px; }
+                QScrollBar:vertical { background: #050907; width: 12px; border: 1px solid #1a3c28; }
+                QScrollBar::handle:vertical { background: #1a3c28; min-height: 20px; }
+                QScrollBar::handle:vertical:hover { background: #39ff14; }
+                #info_panel { background-color: #0a120e; border: 1px solid #1a3c28; }
                 
-                #app_title { font-size: 18px; font-weight: 900; color: #f0f0f0; margin-bottom: 16px; }
-                #btn_theme { font-size: 13px; color: #c4c4c4; border: 1px solid #555555; padding: 10px; border-radius: 6px; }
-                #btn_theme:hover { background-color: #222222; color: #ffffff; }
-                #version_lbl { color: #999999; font-size: 11px; }
-                #risk_title { color: #8afe8a; font-size: 12px; }
-                #info_title { font-size: 16px; font-weight: bold; color: #8afe8a; }
-                #info_text { color: #c4c4c4; font-size: 13px; line-height: 1.5; }
-                #info_line { color: #333333; }
-                #feat_title { font-size: 16px; font-weight: bold; color: #c4c4c4; }
+                #app_title { font-size: 18px; font-weight: bold; color: #39ff14; margin-bottom: 16px; letter-spacing: 2px; }
+                #btn_theme { font-size: 12px; color: #558b6e; border: 1px solid #1a3c28; padding: 10px; border-radius: 0px; }
+                #btn_theme:hover { background-color: #1a3c28; color: #39ff14; }
+                #version_lbl { color: #558b6e; font-size: 11px; letter-spacing: 1px; }
+                #risk_title { color: #39ff14; font-size: 12px; letter-spacing: 1px; font-weight: bold; }
+                #info_title { font-size: 16px; font-weight: bold; color: #39ff14; text-transform: uppercase; }
+                #info_text { color: #a2c4b0; font-size: 13px; line-height: 1.5; }
+                #info_line { color: #1a3c28; }
+                #feat_title { font-size: 16px; font-weight: bold; color: #39ff14; text-transform: uppercase; }
                 
-                #page_title { font-size: 22px; font-weight: bold; color: #f0f0f0; }
-                QLabel[class="img_title"] { font-size: 18px; color: #f0f0f0; font-weight: bold; margin-top: 10px; }
+                #page_title { font-size: 22px; font-weight: bold; color: #39ff14; text-transform: uppercase; letter-spacing: 2px; }
+                QLabel[class="img_title"] { font-size: 16px; color: #39ff14; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
                 
-                QPushButton[class="log_btn"] { background-color: #212121; color: #f0f0f0; border: 1px solid #8b0000; border-radius: 6px; padding: 8px 15px;}
-                QPushButton[class="log_btn"]:hover { background-color: #2a2a2a; }
+                QPushButton[class="log_btn"] { background-color: #0a120e; color: #39ff14; border: 1px solid #1a3c28; border-radius: 0px; padding: 8px 15px; font-weight: bold; text-transform: uppercase; }
+                QPushButton[class="log_btn"]:hover { background-color: #1a3c28; border-color: #39ff14; }
                 
                 #log_text_box {
-                    background-color: #101010; color: #00ff00; font-family: 'Consolas', monospace;
-                    font-size: 14px; border: 1px solid #8b0000; border-radius: 8px; padding: 15px;
+                    background-color: #050907; color: #39ff14; font-family: 'Consolas', monospace;
+                    font-size: 13px; border: 1px solid #1a3c28; border-radius: 0px; padding: 15px;
                 }
             """)
         else:
             self.setStyleSheet("""
-                QMainWindow { background-color: #f0f0f0; }
-                QWidget { color: #333333; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; }
-                #sidebar { background-color: #e0e0e0; border-right: 2px solid #cc0000; }
-                #sidebar QPushButton { background-color: transparent; color: #555555; border: none; border-radius: 8px; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 15px; }
-                #sidebar QPushButton:hover { background-color: #cccccc; color: #000000; }
-                #sidebar QPushButton:checked { background-color: #ffcccc; color: #cc0000; border-left: 4px solid #cc0000; }
-                #header_frame { background-color: #e0e0e0; border: 2px solid #cc0000; border-radius: 12px; padding: 10px; }
-                QProgressBar { border: 2px solid #cc0000; border-radius: 6px; background-color: #e0e0e0; text-align: center; color: #333333; font-weight: bold; height: 20px; }
-                QProgressBar::chunk { background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #cc0000, stop:1 #800000); border-radius: 5px; }
+                QMainWindow { background-color: #e3e7d3; }
+                QWidget { color: #2e3b32; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; }
+                #sidebar { background-color: #d1d6c0; border-right: 2px solid #8d977a; }
+                #sidebar QPushButton { background-color: transparent; color: #4a5c4d; border: 1px solid transparent; border-radius: 4px; padding: 12px 15px; text-align: left; font-weight: bold; font-size: 14px; letter-spacing: 1px; }
+                #sidebar QPushButton:hover { background-color: #c0c7ad; color: #1e2922; border: 1px solid #8d977a; }
+                #sidebar QPushButton:checked { background-color: #a8b092; color: #1e2922; border-left: 4px solid #1e2922; border-right: 1px solid #8d977a; border-top: 1px solid #8d977a; border-bottom: 1px solid #8d977a; }
+                #header_frame { background-color: #d1d6c0; border: 2px solid #8d977a; border-radius: 0px; padding: 10px; }
+                QProgressBar { border: 1px solid #4a5c4d; border-radius: 0px; background-color: #e3e7d3; text-align: center; color: #1e2922; font-weight: bold; height: 18px; }
+                QProgressBar::chunk { background-color: #4a5c4d; }
                 QScrollArea { border: none; background-color: transparent; }
                 QStackedWidget > QWidget { background-color: transparent; }
-                QScrollBar:vertical { background: #f0f0f0; width: 10px; border-radius: 5px; }
-                QScrollBar::handle:vertical { background: #aaaaaa; border-radius: 5px; }
-                QScrollBar::handle:vertical:hover { background: #888888; }
-                #info_panel { background-color: #e0e0e0; border: 1px solid #cc0000; border-radius: 10px; }
+                QScrollBar:vertical { background: #e3e7d3; width: 12px; border: 1px solid #8d977a; }
+                QScrollBar::handle:vertical { background: #8d977a; min-height: 20px; }
+                QScrollBar::handle:vertical:hover { background: #4a5c4d; }
+                #info_panel { background-color: #d1d6c0; border: 1px solid #8d977a; }
                 
-                #app_title { font-size: 24px; font-weight: 900; color: #333333; margin-bottom: 20px; }
-                #btn_theme { font-size: 13px; color: #555555; border: 1px solid #aaaaaa; padding: 10px; border-radius: 6px; }
-                #btn_theme:hover { background-color: #cccccc; color: #000000; }
-                #version_lbl { color: #777777; font-size: 11px; }
-                #risk_title { color: #555555; font-size: 12px; }
-                #info_title { font-size: 16px; font-weight: bold; color: #333333; }
-                #info_text { color: #333333; font-size: 13px; line-height: 1.5; }
-                #info_line { color: #aaaaaa; }
-                #feat_title { font-size: 16px; font-weight: bold; color: #333333; }
+                #app_title { font-size: 18px; font-weight: bold; color: #1e2922; margin-bottom: 16px; letter-spacing: 2px; }
+                #btn_theme { font-size: 12px; color: #4a5c4d; border: 1px solid #8d977a; padding: 10px; border-radius: 0px; }
+                #btn_theme:hover { background-color: #8d977a; color: #ffffff; }
+                #version_lbl { color: #5a6b5d; font-size: 11px; letter-spacing: 1px; }
+                #risk_title { color: #1e2922; font-size: 12px; letter-spacing: 1px; font-weight: bold; }
+                #info_title { font-size: 16px; font-weight: bold; color: #1e2922; text-transform: uppercase; }
+                #info_text { color: #2e3b32; font-size: 13px; line-height: 1.5; }
+                #info_line { color: #8d977a; }
+                #feat_title { font-size: 16px; font-weight: bold; color: #1e2922; text-transform: uppercase; }
                 
-                #page_title { font-size: 22px; font-weight: bold; color: #333333; }
-                QLabel[class="img_title"] { font-size: 18px; color: #333333; font-weight: bold; margin-top: 10px; }
+                #page_title { font-size: 22px; font-weight: bold; color: #1e2922; text-transform: uppercase; letter-spacing: 2px; }
+                QLabel[class="img_title"] { font-size: 16px; color: #1e2922; font-weight: bold; margin-top: 10px; text-transform: uppercase; }
                 
-                QPushButton[class="log_btn"] { background-color: #e0e0e0; color: #333333; border: 1px solid #cc0000; border-radius: 6px; padding: 8px 15px;}
-                QPushButton[class="log_btn"]:hover { background-color: #ffcccc; }
+                QPushButton[class="log_btn"] { background-color: #d1d6c0; color: #1e2922; border: 1px solid #8d977a; border-radius: 0px; padding: 8px 15px; font-weight: bold; text-transform: uppercase; }
+                QPushButton[class="log_btn"]:hover { background-color: #a8b092; border-color: #4a5c4d; }
                 
                 #log_text_box {
-                    background-color: #f0f0f0; color: #008000; font-family: 'Consolas', monospace;
-                    font-size: 14px; border: 1px solid #cc0000; border-radius: 8px; padding: 15px;
+                    background-color: #e3e7d3; color: #1e2922; font-family: 'Consolas', monospace;
+                    font-size: 13px; border: 1px solid #8d977a; border-radius: 0px; padding: 15px;
                 }
             """)
         
@@ -286,6 +286,40 @@ class MainWindow(QMainWindow, Engine):
     def update_map_position(self, lat, lon):
         if hasattr(self, 'map_page'):
             self.map_page.update_drone(lat, lon)
+            
+        if hasattr(self, 'iha_page'):
+            import random
+            telemetry = {
+                'GPS_ground_speed': 15.2 + random.uniform(-1, 1),
+                'GPS_altitude': 410.5 + random.uniform(-2, 2),
+                'GPS_ground_course': (lon * 1000) % 360,
+                'verticalSpeed': random.uniform(-0.5, 0.5),
+                'GPS_hdop': random.uniform(0.8, 1.2),
+                'GPS_numSat': int(14 + random.uniform(0, 3)),
+                'navState': 'AUTO-NAV',
+                'GPS_coord[0]': round(lat, 6),
+                'GPS_coord[1]': round(lon, 6),
+                'escTemperature': 42.0 + random.uniform(-1, 1),
+                'vbat': 22.4 - random.uniform(0, 0.1),
+                'rssi': -68 + int(random.uniform(-4, 4)),
+                'activeWpNumber': 4,
+                'navTgtPos[0]': round(1200 + random.uniform(-5, 5), 1),
+                'navTgtPos[1]': round(800 + random.uniform(-5, 5), 1),
+                'navTgtPos[2]': 400,
+                'navVel[0]': round(10 + random.uniform(-0.5, 0.5), 2),
+                'navVel[1]': round(10 + random.uniform(-0.5, 0.5), 2),
+                'navVel[2]': round(random.uniform(-0.2, 0.2), 2),
+                'accSmooth[0]': round(random.uniform(-0.1, 0.1), 3),
+                'accSmooth[1]': round(random.uniform(-0.1, 0.1), 3),
+                'accSmooth[2]': round(9.8 + random.uniform(-0.05, 0.05), 3),
+                'gyroADC[0]': round(random.uniform(-0.5, 0.5), 2),
+                'gyroADC[1]': round(random.uniform(-0.5, 0.5), 2),
+                'gyroADC[2]': round(random.uniform(-0.5, 0.5), 2),
+                'magADC[0]': int(random.uniform(100, 150)),
+                'magADC[1]': int(random.uniform(100, 150)),
+                'magADC[2]': int(random.uniform(100, 150)),
+            }
+            self.iha_page.update_telemetry(telemetry)
 
     def setWindowTitle(self, title):
         # Prevent actual window title from changing
@@ -300,18 +334,18 @@ class MainWindow(QMainWindow, Engine):
 
             if "UYARI" in title or "SALDIRI" in title:
                 self.status_icon.setText("⚠")
-                self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #ff5b4d;")
-                self.status_label.setText("TEHDİT TESPİT EDİLDİ!")
-                self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #ff5b4d;")
-                self.header_frame.setStyleSheet("#header_frame { background-color: #1f0d11; border: 1px solid #ff5b4d; border-radius: 12px; }")
-                self.risk_bar.setStyleSheet("""QProgressBar::chunk { background-color: #ff5b4d; border-radius: 5px; }""")
+                self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #ff003c;")
+                self.status_label.setText("KRİTİK UYARI: TEHDİT TESPİT EDİLDİ!")
+                self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #ff003c; letter-spacing: 1px;")
+                self.header_frame.setStyleSheet("#header_frame { background-color: #1a0505; border: 2px solid #ff003c; border-radius: 0px; }")
+                self.risk_bar.setStyleSheet("""QProgressBar::chunk { background-color: #ff003c; } QProgressBar { border: 1px solid #ff003c; border-radius: 0px; }""")
             else:
                 self.status_icon.setText("✓")
-                self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #8afe8a;")
-                self.status_label.setText("SIPER: İzleme Aktif")
-                self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #8afe8a;")
-                self.header_frame.setStyleSheet("#header_frame { background-color: #101214; border: 1px solid #8afe8a; border-radius: 12px; }")
-                self.risk_bar.setStyleSheet("""QProgressBar::chunk { background-color: #8afe8a; border-radius: 5px; }""")
+                self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #39ff14;")
+                self.status_label.setText("SİSTEM DURUMU: NOMİNAL")
+                self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #39ff14; letter-spacing: 1px;")
+                self.header_frame.setStyleSheet("#header_frame { background-color: #08100c; border: 2px solid #1a3c28; border-radius: 0px; }")
+                self.risk_bar.setStyleSheet("""QProgressBar::chunk { background-color: #39ff14; } QProgressBar { border: 1px solid #39ff14; border-radius: 0px; }""")
 
     def graph_update(self, oran, vektor):
         # 1. Engine.py içindeki asıl grafik güncellemesini çalıştır
