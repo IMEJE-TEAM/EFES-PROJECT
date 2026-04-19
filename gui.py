@@ -4,6 +4,7 @@ import csv
 import re
 from engine import Engine
 from gui_pages.dashboard import DashboardPage
+from gui_pages.iha_status import IhaStatusPage
 from gui_pages.model_analysis import ModelAnalysisPage
 from gui_pages.logs import LogsPage
 from PyQt5.QtWidgets import *
@@ -58,24 +59,27 @@ class MainWindow(QMainWindow, Engine):
         app_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sidebar_layout.addWidget(app_title)
 
-        self.btn_dashboard = QPushButton("📊 Canlı İzleme (Dashboard)")
+        self.btn_dashboard = QPushButton(" Canlı İzleme (Dashboard)")
         self.btn_dashboard.setCheckable(True)
         self.btn_dashboard.setChecked(True)
         
-        self.btn_model = QPushButton("📈 Model Başarı Analizleri")
+        self.btn_model = QPushButton(" Model Başarı Analizleri")
         self.btn_model.setCheckable(True)
 
-        self.btn_logs = QPushButton("📂 Log Yönetimi")
+        self.btn_logs = QPushButton(" Log Yönetimi")
         self.btn_logs.setCheckable(True)
 
-        self.btn_auto = QPushButton("🌍 Otonom Uçuş & Harita")
+        self.btn_iha = QPushButton(" İHA Durum")
+        self.btn_iha.setCheckable(True)
+
+        self.btn_auto = QPushButton(" Otonom Uçuş & Harita")
         self.btn_auto.setCheckable(True)
 
-        self.btn_config = QPushButton("⚙️ Görev & Yapılandırma")
+        self.btn_config = QPushButton(" Görev & Yapılandırma")
         self.btn_config.setCheckable(True)
 
         
-        for btn in [self.btn_dashboard, self.btn_model, self.btn_logs, self.btn_auto, self.btn_config]:
+        for btn in [self.btn_dashboard, self.btn_model, self.btn_logs, self.btn_iha, self.btn_auto, self.btn_config]:
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             sidebar_layout.addWidget(btn)
 
@@ -110,6 +114,8 @@ class MainWindow(QMainWindow, Engine):
         self.stacked_widget.addWidget(DashboardPage(self))
         self.stacked_widget.addWidget(ModelAnalysisPage())
         self.stacked_widget.addWidget(LogsPage(self))
+        self.iha_page = IhaStatusPage()
+        self.stacked_widget.addWidget(self.iha_page)
         self.map_page = MapPage(self)
         self.stacked_widget.addWidget(self.map_page)        
         self.stacked_widget.addWidget(SettingsPage(self))
@@ -125,8 +131,9 @@ class MainWindow(QMainWindow, Engine):
         self.btn_dashboard.clicked.connect(lambda: self.switch_page(0))
         self.btn_model.clicked.connect(lambda: self.switch_page(1))
         self.btn_logs.clicked.connect(lambda: self.switch_page(2))
-        self.btn_auto.clicked.connect(lambda: self.switch_page(3))   
-        self.btn_config.clicked.connect(lambda: self.switch_page(4)) 
+        self.btn_iha.clicked.connect(lambda: self.switch_page(3))
+        self.btn_auto.clicked.connect(lambda: self.switch_page(4))   
+        self.btn_config.clicked.connect(lambda: self.switch_page(5)) 
 
 
 
@@ -272,8 +279,9 @@ class MainWindow(QMainWindow, Engine):
         self.btn_dashboard.setChecked(index == 0)
         self.btn_model.setChecked(index == 1)
         self.btn_logs.setChecked(index == 2)
-        self.btn_auto.setChecked(index == 3)
-        self.btn_config.setChecked(index == 4)
+        self.btn_iha.setChecked(index == 3)
+        self.btn_auto.setChecked(index == 4)
+        self.btn_config.setChecked(index == 5)
 
     def update_map_position(self, lat, lon):
         if hasattr(self, 'map_page'):
