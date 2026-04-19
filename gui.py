@@ -4,11 +4,12 @@ import csv
 import re
 from engine import Engine
 from gui_pages.dashboard import DashboardPage
+from gui_pages.iha_status import IhaStatusPage
 from gui_pages.model_analysis import ModelAnalysisPage
 from gui_pages.logs import LogsPage
-from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PyQt5.QtGui import QPixmap
 from gui_pages.map_page import MapPage
 from gui_pages.settings_page import SettingsPage
 
@@ -20,7 +21,7 @@ from gui_pages.settings_page import SettingsPage
 class MainWindow(QMainWindow, Engine):
     def __init__(self):
         super().__init__()
-        super().setWindowTitle("Proje arayüzü")
+        super().setWindowTitle("SIPER Askeri")
         self.resize(1366, 768)
 
         self.is_dark = True
@@ -43,29 +44,42 @@ class MainWindow(QMainWindow, Engine):
         sidebar_layout.setContentsMargins(15, 25, 15, 20)
         sidebar_layout.setSpacing(10)
 
-        app_title = QLabel("🛡️ EFES\nSaldırı Tespit Sistemi")
+        # Logo ekleme
+        logo_label = QLabel()
+        pixmap = QPixmap("graffiti_red.png")
+        if not pixmap.isNull():
+            logo_label.setPixmap(pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            logo_label.setAlignment(Qt.AlignCenter)
+            sidebar_layout.addWidget(logo_label)
+
+        app_title = QLabel("SIPER Saldırı Tespit Sistemi")
         app_title.setObjectName("app_title")
+        app_title.setWordWrap(True)
+        app_title.setFixedHeight(60)
         app_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sidebar_layout.addWidget(app_title)
 
-        self.btn_dashboard = QPushButton("📊 Canlı İzleme (Dashboard)")
+        self.btn_dashboard = QPushButton(" Canlı İzleme (Dashboard)")
         self.btn_dashboard.setCheckable(True)
         self.btn_dashboard.setChecked(True)
         
-        self.btn_model = QPushButton("📈 Model Başarı Analizleri")
+        self.btn_model = QPushButton(" Model Başarı Analizleri")
         self.btn_model.setCheckable(True)
 
-        self.btn_logs = QPushButton("📂 Log Yönetimi")
+        self.btn_logs = QPushButton(" Log Yönetimi")
         self.btn_logs.setCheckable(True)
 
-        self.btn_auto = QPushButton("🌍 Otonom Uçuş & Harita")
+        self.btn_iha = QPushButton(" İHA Durum")
+        self.btn_iha.setCheckable(True)
+
+        self.btn_auto = QPushButton(" Otonom Uçuş & Harita")
         self.btn_auto.setCheckable(True)
 
-        self.btn_config = QPushButton("⚙️ Görev & Yapılandırma")
+        self.btn_config = QPushButton(" Görev & Yapılandırma")
         self.btn_config.setCheckable(True)
 
         
-        for btn in [self.btn_dashboard, self.btn_model, self.btn_logs, self.btn_auto, self.btn_config]:
+        for btn in [self.btn_dashboard, self.btn_model, self.btn_logs, self.btn_iha, self.btn_auto, self.btn_config]:
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             sidebar_layout.addWidget(btn)
 
@@ -73,7 +87,7 @@ class MainWindow(QMainWindow, Engine):
         
         sidebar_layout.addStretch()
 
-        self.btn_theme = QPushButton("☀️ Gündüz Moda Geç")
+        self.btn_theme = QPushButton("🌙 Aydınlık Moda Geç")
         self.btn_theme.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_theme.clicked.connect(self.toggle_theme)
         self.btn_theme.setObjectName("btn_theme")
@@ -100,7 +114,10 @@ class MainWindow(QMainWindow, Engine):
         self.stacked_widget.addWidget(DashboardPage(self))
         self.stacked_widget.addWidget(ModelAnalysisPage())
         self.stacked_widget.addWidget(LogsPage(self))
-        self.stacked_widget.addWidget(MapPage(self))        
+        self.iha_page = IhaStatusPage()
+        self.stacked_widget.addWidget(self.iha_page)
+        self.map_page = MapPage(self)
+        self.stacked_widget.addWidget(self.map_page)        
         self.stacked_widget.addWidget(SettingsPage(self))
 
 
@@ -114,8 +131,9 @@ class MainWindow(QMainWindow, Engine):
         self.btn_dashboard.clicked.connect(lambda: self.switch_page(0))
         self.btn_model.clicked.connect(lambda: self.switch_page(1))
         self.btn_logs.clicked.connect(lambda: self.switch_page(2))
-        self.btn_auto.clicked.connect(lambda: self.switch_page(3))   
-        self.btn_config.clicked.connect(lambda: self.switch_page(4)) 
+        self.btn_iha.clicked.connect(lambda: self.switch_page(3))
+        self.btn_auto.clicked.connect(lambda: self.switch_page(4))   
+        self.btn_config.clicked.connect(lambda: self.switch_page(5)) 
 
 
 
@@ -131,10 +149,10 @@ class MainWindow(QMainWindow, Engine):
         header_layout = QHBoxLayout(self.header_frame)
         
         self.status_icon = QLabel("✓")
-        self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #00ff00;")
+        self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #8afe8a;")
         
-        self.status_label = QLabel("Sistem Güvende (Analiz Devam Ediyor)")
-        self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ff00;")
+        self.status_label = QLabel("SIPER: İzleme Aktif")
+        self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #8afe8a;")
         
         risk_layout = QVBoxLayout()
         risk_title = QLabel("Anlık Spoofing / Tehdit Olasılığı:")
@@ -157,86 +175,86 @@ class MainWindow(QMainWindow, Engine):
 
     def toggle_theme(self):
         self.is_dark = not self.is_dark
-        self.btn_theme.setText("☀️ Gündüz Moda Geç" if self.is_dark else "🌙 Gece Moda Geç")
+        self.btn_theme.setText("🌙 Aydınlık Moda Geç" if self.is_dark else "🌙 Karanlık Moda Geç")
         self.apply_theme(self.is_dark)
 
     def apply_theme(self, dark: bool):
         if dark:
             self.setStyleSheet("""
-                QMainWindow { background-color: #0d0d16; }
-                QWidget { color: #d1d1e0; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; }
-                #sidebar { background-color: #161623; border-right: 1px solid #232336; }
-                #sidebar QPushButton { background-color: transparent; color: #8b8bad; border: none; border-radius: 8px; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 15px; }
-                #sidebar QPushButton:hover { background-color: #232336; color: #ffffff; }
-                #sidebar QPushButton:checked { background-color: #2a2a44; color: #00ffff; border-left: 4px solid #00ffff; }
-                #header_frame { background-color: #1a251f; border: 1px solid #00ff00; border-radius: 12px; padding: 10px; }
-                QProgressBar { border: 1px solid #232336; border-radius: 6px; background-color: #161623; text-align: center; color: white; font-weight: bold; height: 20px; }
-                QProgressBar::chunk { background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00ffff, stop:1 #0055ff); border-radius: 5px; }
+                QMainWindow { background-color: #0a0a0f; }  /* Daha koyu askeri arka plan */
+                QWidget { color: #c4c4c4; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; }
+                #sidebar { background-color: #151515; border-right: 2px solid #8b0000; }
+                #sidebar QPushButton { background-color: transparent; color: #c4c4c4; border: none; border-radius: 8px; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 15px; }
+                #sidebar QPushButton:hover { background-color: #222222; color: #ffffff; }
+                #sidebar QPushButton:checked { background-color: #1f1f1f; color: #ffffff; border-left: 4px solid #8b0000; }
+                #header_frame { background-color: #101214; border: 2px solid #8b0000; border-radius: 12px; padding: 10px; }
+                QProgressBar { border: 2px solid #8b0000; border-radius: 6px; background-color: #111111; text-align: center; color: #c4c4c4; font-weight: bold; height: 20px; }
+                QProgressBar::chunk { background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #8b0000, stop:1 #4a0000); border-radius: 5px; }
                 QScrollArea { border: none; background-color: transparent; }
                 QStackedWidget > QWidget { background-color: transparent; }
-                QScrollBar:vertical { background: #0d0d16; width: 10px; border-radius: 5px; }
-                QScrollBar::handle:vertical { background: #3c3c54; border-radius: 5px; }
-                QScrollBar::handle:vertical:hover { background: #5a5a7a; }
-                #info_panel { background-color: #161623; border: 1px solid #232336; border-radius: 10px; }
+                QScrollBar:vertical { background: #0a0a0f; width: 10px; border-radius: 5px; }
+                QScrollBar::handle:vertical { background: #555555; border-radius: 5px; }
+                QScrollBar::handle:vertical:hover { background: #777777; }
+                #info_panel { background-color: #161616; border: 1px solid #8b0000; border-radius: 10px; }
                 
-                #app_title { font-size: 22px; font-weight: 800; color: white; margin-bottom: 20px; }
-                #btn_theme { font-size: 13px; color: #a0a0c0; border: 1px solid #3c3c54; padding: 10px; border-radius: 6px; }
-                #btn_theme:hover { background-color: #232336; color: #ffffff; }
-                #version_lbl { color: #666680; font-size: 11px; }
-                #risk_title { color: #a0a0c0; font-size: 12px; }
-                #info_title { font-size: 14px; font-weight: bold; color: #00ffff; }
-                #info_text { color: #d1d1e0; font-size: 13px; line-height: 1.5; }
-                #info_line { color: #232336; }
-                #feat_title { font-size: 14px; font-weight: bold; color: #00ffff; }
+                #app_title { font-size: 18px; font-weight: 900; color: #f0f0f0; margin-bottom: 16px; }
+                #btn_theme { font-size: 13px; color: #c4c4c4; border: 1px solid #555555; padding: 10px; border-radius: 6px; }
+                #btn_theme:hover { background-color: #222222; color: #ffffff; }
+                #version_lbl { color: #999999; font-size: 11px; }
+                #risk_title { color: #8afe8a; font-size: 12px; }
+                #info_title { font-size: 16px; font-weight: bold; color: #8afe8a; }
+                #info_text { color: #c4c4c4; font-size: 13px; line-height: 1.5; }
+                #info_line { color: #333333; }
+                #feat_title { font-size: 16px; font-weight: bold; color: #c4c4c4; }
                 
-                #page_title { font-size: 20px; font-weight: bold; color: white; }
-                QLabel[class="img_title"] { font-size: 16px; color: #00ffff; font-weight: bold; margin-top: 10px; }
+                #page_title { font-size: 22px; font-weight: bold; color: #f0f0f0; }
+                QLabel[class="img_title"] { font-size: 18px; color: #f0f0f0; font-weight: bold; margin-top: 10px; }
                 
-                QPushButton[class="log_btn"] { background-color: #2b2b40; color: #fff; border: 1px solid #3c3c54; border-radius: 6px; padding: 8px 15px;}
-                QPushButton[class="log_btn"]:hover { background-color: #3b3b55; }
+                QPushButton[class="log_btn"] { background-color: #212121; color: #f0f0f0; border: 1px solid #8b0000; border-radius: 6px; padding: 8px 15px;}
+                QPushButton[class="log_btn"]:hover { background-color: #2a2a2a; }
                 
                 #log_text_box {
-                    background-color: #12121e; color: #00ff00; font-family: 'Consolas', monospace;
-                    font-size: 14px; border: 1px solid #3c3c54; border-radius: 8px; padding: 15px;
+                    background-color: #101010; color: #00ff00; font-family: 'Consolas', monospace;
+                    font-size: 14px; border: 1px solid #8b0000; border-radius: 8px; padding: 15px;
                 }
             """)
         else:
             self.setStyleSheet("""
-                QMainWindow { background-color: #f5f6fa; }
-                QWidget { color: #2d3436; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; }
-                #sidebar { background-color: #ffffff; border-right: 1px solid #dcdde1; }
-                #sidebar QPushButton { background-color: transparent; color: #718093; border: none; border-radius: 8px; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 15px; }
-                #sidebar QPushButton:hover { background-color: #f1f2f6; color: #2f3640; }
-                #sidebar QPushButton:checked { background-color: #e8f3fe; color: #007bff; border-left: 4px solid #007bff; }
-                #header_frame { background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 12px; padding: 10px; }
-                QProgressBar { border: 1px solid #dcdde1; border-radius: 6px; background-color: #f5f6fa; text-align: center; color: #2d3436; font-weight: bold; height: 20px; }
-                QProgressBar::chunk { background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #007bff, stop:1 #00d2ff); border-radius: 5px; }
+                QMainWindow { background-color: #f0f0f0; }
+                QWidget { color: #333333; font-family: 'Segoe UI', -apple-system, sans-serif; font-size: 14px; }
+                #sidebar { background-color: #e0e0e0; border-right: 2px solid #cc0000; }
+                #sidebar QPushButton { background-color: transparent; color: #555555; border: none; border-radius: 8px; padding: 12px 15px; text-align: left; font-weight: 600; font-size: 15px; }
+                #sidebar QPushButton:hover { background-color: #cccccc; color: #000000; }
+                #sidebar QPushButton:checked { background-color: #ffcccc; color: #cc0000; border-left: 4px solid #cc0000; }
+                #header_frame { background-color: #e0e0e0; border: 2px solid #cc0000; border-radius: 12px; padding: 10px; }
+                QProgressBar { border: 2px solid #cc0000; border-radius: 6px; background-color: #e0e0e0; text-align: center; color: #333333; font-weight: bold; height: 20px; }
+                QProgressBar::chunk { background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #cc0000, stop:1 #800000); border-radius: 5px; }
                 QScrollArea { border: none; background-color: transparent; }
                 QStackedWidget > QWidget { background-color: transparent; }
-                QScrollBar:vertical { background: #f5f6fa; width: 10px; border-radius: 5px; }
-                QScrollBar::handle:vertical { background: #dcdde1; border-radius: 5px; }
-                QScrollBar::handle:vertical:hover { background: #b2bec3; }
-                #info_panel { background-color: #ffffff; border: 1px solid #dcdde1; border-radius: 10px; }
+                QScrollBar:vertical { background: #f0f0f0; width: 10px; border-radius: 5px; }
+                QScrollBar::handle:vertical { background: #aaaaaa; border-radius: 5px; }
+                QScrollBar::handle:vertical:hover { background: #888888; }
+                #info_panel { background-color: #e0e0e0; border: 1px solid #cc0000; border-radius: 10px; }
                 
-                #app_title { font-size: 22px; font-weight: 800; color: #2d3436; margin-bottom: 20px; }
-                #btn_theme { font-size: 13px; color: #718093; border: 1px solid #dcdde1; padding: 10px; border-radius: 6px; }
-                #btn_theme:hover { background-color: #f1f2f6; color: #2d3436; }
-                #version_lbl { color: #8395a7; font-size: 11px; }
-                #risk_title { color: #718093; font-size: 12px; }
-                #info_title { font-size: 14px; font-weight: bold; color: #007bff; }
-                #info_text { color: #2d3436; font-size: 13px; line-height: 1.5; }
-                #info_line { color: #dcdde1; }
-                #feat_title { font-size: 14px; font-weight: bold; color: #007bff; }
+                #app_title { font-size: 24px; font-weight: 900; color: #333333; margin-bottom: 20px; }
+                #btn_theme { font-size: 13px; color: #555555; border: 1px solid #aaaaaa; padding: 10px; border-radius: 6px; }
+                #btn_theme:hover { background-color: #cccccc; color: #000000; }
+                #version_lbl { color: #777777; font-size: 11px; }
+                #risk_title { color: #555555; font-size: 12px; }
+                #info_title { font-size: 16px; font-weight: bold; color: #333333; }
+                #info_text { color: #333333; font-size: 13px; line-height: 1.5; }
+                #info_line { color: #aaaaaa; }
+                #feat_title { font-size: 16px; font-weight: bold; color: #333333; }
                 
-                #page_title { font-size: 20px; font-weight: bold; color: #2d3436; }
-                QLabel[class="img_title"] { font-size: 16px; color: #007bff; font-weight: bold; margin-top: 10px; }
+                #page_title { font-size: 22px; font-weight: bold; color: #333333; }
+                QLabel[class="img_title"] { font-size: 18px; color: #333333; font-weight: bold; margin-top: 10px; }
                 
-                QPushButton[class="log_btn"] { background-color: #ffffff; color: #2d3436; border: 1px solid #dcdde1; border-radius: 6px; padding: 8px 15px;}
-                QPushButton[class="log_btn"]:hover { background-color: #f1f2f6; }
+                QPushButton[class="log_btn"] { background-color: #e0e0e0; color: #333333; border: 1px solid #cc0000; border-radius: 6px; padding: 8px 15px;}
+                QPushButton[class="log_btn"]:hover { background-color: #ffcccc; }
                 
                 #log_text_box {
-                    background-color: #ffffff; color: #27ae60; font-family: 'Consolas', monospace;
-                    font-size: 14px; border: 1px solid #dcdde1; border-radius: 8px; padding: 15px;
+                    background-color: #f0f0f0; color: #008000; font-family: 'Consolas', monospace;
+                    font-size: 14px; border: 1px solid #cc0000; border-radius: 8px; padding: 15px;
                 }
             """)
         
@@ -246,16 +264,32 @@ class MainWindow(QMainWindow, Engine):
                 g.set_theme(dark)
 
     def switch_page(self, index):
+        page = self.stacked_widget.widget(index)
+        opacity = QGraphicsOpacityEffect(page)
+        page.setGraphicsEffect(opacity)
+        animation = QPropertyAnimation(opacity, b"opacity")
+        animation.setDuration(250)
+        animation.setStartValue(0.0)
+        animation.setEndValue(1.0)
+        animation.setEasingCurve(QEasingCurve.InOutCubic)
         self.stacked_widget.setCurrentIndex(index)
+        animation.start()
+        self.page_animation = animation
+
         self.btn_dashboard.setChecked(index == 0)
         self.btn_model.setChecked(index == 1)
         self.btn_logs.setChecked(index == 2)
-        self.btn_auto.setChecked(index == 3)
-        self.btn_config.setChecked(index == 4)
+        self.btn_iha.setChecked(index == 3)
+        self.btn_auto.setChecked(index == 4)
+        self.btn_config.setChecked(index == 5)
+
+    def update_map_position(self, lat, lon):
+        if hasattr(self, 'map_page'):
+            self.map_page.update_drone(lat, lon)
 
     def setWindowTitle(self, title):
         # Prevent actual window title from changing
-        if title == "Proje arayüzü":
+        if title == "SIPER Askeri":
             super().setWindowTitle(title)
             
         if hasattr(self, 'header_frame'):
@@ -266,18 +300,18 @@ class MainWindow(QMainWindow, Engine):
 
             if "UYARI" in title or "SALDIRI" in title:
                 self.status_icon.setText("⚠")
-                self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #ff3333;")
-                self.status_label.setText("UYARI: GNSS Spoofing Saldırısı Tespit Edildi!")
-                self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #ff3333;")
-                self.header_frame.setStyleSheet("#header_frame { background-color: #2a1114; border: 1px solid #ff3333; border-radius: 12px; }")
-                self.risk_bar.setStyleSheet("""QProgressBar::chunk { background-color: #ff3333; border-radius: 5px; }""")
+                self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #ff5b4d;")
+                self.status_label.setText("TEHDİT TESPİT EDİLDİ!")
+                self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #ff5b4d;")
+                self.header_frame.setStyleSheet("#header_frame { background-color: #1f0d11; border: 1px solid #ff5b4d; border-radius: 12px; }")
+                self.risk_bar.setStyleSheet("""QProgressBar::chunk { background-color: #ff5b4d; border-radius: 5px; }""")
             else:
                 self.status_icon.setText("✓")
-                self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #00ff00;")
-                self.status_label.setText("Sistem Güvende (Normal Akış)")
-                self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #00ff00;")
-                self.header_frame.setStyleSheet("#header_frame { background-color: #112a1c; border: 1px solid #00ff00; border-radius: 12px; }")
-                self.risk_bar.setStyleSheet("""QProgressBar::chunk { background-color: #00ffff; border-radius: 5px; }""")
+                self.status_icon.setStyleSheet("font-size: 36px; font-weight: bold; color: #8afe8a;")
+                self.status_label.setText("SIPER: İzleme Aktif")
+                self.status_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #8afe8a;")
+                self.header_frame.setStyleSheet("#header_frame { background-color: #101214; border: 1px solid #8afe8a; border-radius: 12px; }")
+                self.risk_bar.setStyleSheet("""QProgressBar::chunk { background-color: #8afe8a; border-radius: 5px; }""")
 
     def graph_update(self, oran, vektor):
         # 1. Engine.py içindeki asıl grafik güncellemesini çalıştır
@@ -368,7 +402,7 @@ class MainWindow(QMainWindow, Engine):
 
 if __name__ == "__main__":
     import sys
-    app = QApplication(sys.argv)
+    app = QApplication(sys.argv) if QApplication.instance() is None else QApplication.instance()
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
