@@ -1,7 +1,7 @@
 import os
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QApplication
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap
 
 class ModelAnalysisPage(QWidget):
     def __init__(self):
@@ -36,10 +36,13 @@ class ModelAnalysisPage(QWidget):
             
             img_lbl = QLabel()
             if os.path.exists(img_path):
-                pixmap = QPixmap(img_path)
-                # Standart bir genişlikte yeniden boyutlandırarak arayüze sığdır
-                pixmap = pixmap.scaledToWidth(800, Qt.TransformationMode.SmoothTransformation)
-                img_lbl.setPixmap(pixmap)
+                if QApplication.instance() is not None:
+                    pixmap = QPixmap(img_path)
+                    # Standart bir genişlikte yeniden boyutlandırarak arayüze sığdır
+                    pixmap = pixmap.scaledToWidth(800, Qt.TransformationMode.SmoothTransformation)
+                    img_lbl.setPixmap(pixmap)
+                else:
+                    img_lbl.setText("QApplication gerekli")
             else:
                 img_lbl.setText("Görsel bulunamadı: " + img_path)
                 
