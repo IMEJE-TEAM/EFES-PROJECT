@@ -62,23 +62,43 @@ class PgGraph(pg.PlotWidget):
             raise RuntimeError("QApplication must be created before PgGraph")
         super().__init__()
         self.setMinimumHeight(150)
-        self.setBackground('#1e1e2f')
-        self.showGrid(x=True, y=True, alpha=0.3)
+        self.setBackground('#000000')
+        self.getPlotItem().getViewBox().setBackgroundColor('#000000')
+        self.showGrid(x=True, y=True, alpha=0.18)
         self.setLabel('left', left_name)
         self.setLabel('bottom', bottom_name)
+        self.getPlotItem().hideButtons()
+        self.getPlotItem().setMenuEnabled(False)
+        self.getPlotItem().showAxis('top', False)
+        self.getPlotItem().showAxis('right', False)
+        axis_pen = pg.mkPen('#5c5f66')
+        text_pen = pg.mkPen('#8e929b')
+        self.getPlotItem().getAxis('left').setPen(axis_pen)
+        self.getPlotItem().getAxis('left').setTextPen(text_pen)
+        self.getPlotItem().getAxis('bottom').setPen(axis_pen)
+        self.getPlotItem().getAxis('bottom').setTextPen(text_pen)
 
-        kalem = pg.mkPen(color=(0, 255, 255), width=3)
+        # Kırmızı çizgi rengi (askeri tema için)
+        self.kalem = pg.mkPen(color=(219, 37, 8), width=2)
         self.data = np.zeros(1000)
-        self.cizgi = self.plot(self.data, pen=kalem)
+        self.baseline = self.plot(np.zeros(1000), pen=pg.mkPen(None))
+        self.cizgi = self.plot(self.data, pen=self.kalem)
+        self.fill = pg.FillBetweenItem(self.cizgi, self.baseline, brush=(219, 37, 8, 40))
+        self.getPlotItem().addItem(self.fill)
         self.getPlotItem().getViewBox().setMouseEnabled(x=False, y=False)
 
     def set_theme(self, is_dark: bool):
         if is_dark:
-            self.setBackground('#1e1e2f')
-            self.showGrid(x=True, y=True, alpha=0.3)
+            self.setBackground('#000000')  # Tam siyah askeri arka plan
+            self.getPlotItem().getViewBox().setBackgroundColor('#000000')
+            self.showGrid(x=True, y=True, alpha=0.18)
+            self.kalem.setColor(pg.mkColor(219, 37, 8))
         else:
-            self.setBackground('#f0f0f5')
-            self.showGrid(x=True, y=True, alpha=0.3)
+            self.setBackground('#1f1f1f')  # Açık modda koyu gri
+            self.getPlotItem().getViewBox().setBackgroundColor('#1f1f1f')
+            self.showGrid(x=True, y=True, alpha=0.18)
+            self.kalem.setColor(pg.mkColor(219, 37, 8))
+        self.cizgi.setPen(self.kalem)
             
 class Engine():
     def Thread(self):
