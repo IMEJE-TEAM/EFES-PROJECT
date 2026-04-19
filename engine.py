@@ -1,16 +1,21 @@
 import pickle
 import pandas as pd
 import numpy as np
+import math
+import PyQt5.QtWidgets  # Force PyQt5 for pyqtgraph
 import pyqtgraph as pg
+pg.setConfigOptions(useOpenGL=False)  # Disable OpenGL for compatibility
 import itertools
 import sklearn
 
 from tensorflow.keras.models import load_model
 from collections import deque
-from PyQt6.QtCore import *
+from PyQt5.QtCore import *
 
 class DataWorker(QObject):
     data_ready = pyqtSignal(float, np.ndarray)
+    gps_ready = pyqtSignal(float, float)
+
     def __init__(self, model, scaler, csv_path):
         super().__init__()
         self.model = model
@@ -18,6 +23,20 @@ class DataWorker(QObject):
         self.data_buffer = deque(maxlen=30)
         df = pd.read_csv(csv_path)
         self.data_iterator = itertools.cycle(df.iloc[:, :8].values)
+        self.gps_path = self._create_gps_path()
+        self.gps_index = 0
+
+    def _create_gps_path(self):
+        base_lat, base_lon = 38.7312, 35.4787
+        path = []
+        for i in range(1000):
+            path.append(
+                (
+                    base_lat + 0.00018 * math.sin(i / 25.0),
+                    base_lon + 0.00024 * math.cos(i / 30.0)
+                )
+            )
+        return path
 
     @pyqtSlot()
     def process_data(self):
@@ -32,8 +51,15 @@ class DataWorker(QObject):
 
             self.data_ready.emit(score, new_row)
 
+            lat, lon = self.gps_path[self.gps_index]
+            self.gps_ready.emit(lat, lon)
+            self.gps_index = (self.gps_index + 1) % len(self.gps_path)
+
 class PgGraph(pg.PlotWidget):
     def __init__(self, left_name:str, bottom_name:str):
+        from PyQt5.QtWidgets import QApplication
+        if QApplication.instance() is None:
+            raise RuntimeError("QApplication must be created before PgGraph")
         super().__init__()
         self.setMinimumHeight(150)
         self.setBackground('#1e1e2f')
@@ -67,12 +93,13 @@ class Engine():
         self.timer.timeout.connect(self.data_worker.process_data)
 
         self.data_worker.data_ready.connect(self.graph_update)
+        self.data_worker.gps_ready.connect(self.update_map_position)
 
         self.kanal.started.connect(self.timer.start)
         self.kanal.start()
 
     def graph_create_add(self):
-        from PyQt6.QtWidgets import QLabel
+        from PyQt5.QtWidgets import QLabel
         
         # Grafik isimleri ve açıklamaları
         graph_details = [

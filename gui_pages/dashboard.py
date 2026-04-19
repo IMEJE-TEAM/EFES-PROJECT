@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QScrollArea, QFrame, QLabel, QProgressBar
-from PyQt6.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QScrollArea, QFrame, QLabel, QProgressBar
+from PyQt5.QtCore import Qt
 
 class DashboardPage(QWidget):
     def __init__(self, main_window):

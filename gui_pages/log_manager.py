@@ -1,5 +1,5 @@
 import csv
-from PyQt6.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 
 class LogManager:
     @staticmethod
