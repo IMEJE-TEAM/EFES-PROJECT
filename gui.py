@@ -6,9 +6,8 @@ from engine import Engine
 from gui_pages.dashboard import DashboardPage
 from gui_pages.model_analysis import ModelAnalysisPage
 from gui_pages.logs import LogsPage
-from PyQt6.QtWidgets import *
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt
 from gui_pages.map_page import MapPage
 from gui_pages.settings_page import SettingsPage
 
@@ -100,7 +99,8 @@ class MainWindow(QMainWindow, Engine):
         self.stacked_widget.addWidget(DashboardPage(self))
         self.stacked_widget.addWidget(ModelAnalysisPage())
         self.stacked_widget.addWidget(LogsPage(self))
-        self.stacked_widget.addWidget(MapPage(self))        
+        self.map_page = MapPage(self)
+        self.stacked_widget.addWidget(self.map_page)        
         self.stacked_widget.addWidget(SettingsPage(self))
 
 
@@ -253,6 +253,10 @@ class MainWindow(QMainWindow, Engine):
         self.btn_auto.setChecked(index == 3)
         self.btn_config.setChecked(index == 4)
 
+    def update_map_position(self, lat, lon):
+        if hasattr(self, 'map_page'):
+            self.map_page.update_drone(lat, lon)
+
     def setWindowTitle(self, title):
         # Prevent actual window title from changing
         if title == "Proje arayüzü":
@@ -368,7 +372,7 @@ class MainWindow(QMainWindow, Engine):
 
 if __name__ == "__main__":
     import sys
-    app = QApplication(sys.argv)
+    app = QApplication(sys.argv) if QApplication.instance() is None else QApplication.instance()
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
