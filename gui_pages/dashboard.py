@@ -1,5 +1,67 @@
+from math import cos, sin, pi
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QScrollArea, QFrame, QLabel, QProgressBar
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer, QPointF
+from PyQt5.QtGui import QPainter, QColor, QPen
+
+class RadarWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.angle = 0.0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.rotate)
+        self.timer.start(40)
+        self.setMinimumSize(320, 320)
+
+    def rotate(self):
+        self.angle = (self.angle + 3) % 360
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        try:
+            painter.setRenderHints(QPainter.Antialiasing | QPainter.TextAntialiasing)
+            rect = self.rect().adjusted(10, 10, -10, -10)
+            center = QPointF(rect.center())
+            radius = min(rect.width(), rect.height()) / 2 - 10
+
+            painter.setBrush(QColor('#081011'))
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(center, radius + 10, radius + 10)
+
+            grid_pen = QPen(QColor('#1f354c'), 2)
+            painter.setPen(grid_pen)
+            painter.setBrush(Qt.NoBrush)
+            for ring in range(1, 5):
+                painter.drawEllipse(center, radius / 5 * ring, radius / 5 * ring)
+            painter.drawLine(QPointF(center.x() - radius, center.y()), QPointF(center.x() + radius, center.y()))
+            painter.drawLine(QPointF(center.x(), center.y() - radius), QPointF(center.x(), center.y() + radius))
+
+            painter.setPen(QPen(QColor('#224362'), 1))
+            for i in range(0, 360, 30):
+                angle = i * pi / 180.0
+                x = center.x() + radius * 0.96 * cos(angle)
+                y = center.y() + radius * 0.96 * sin(angle)
+                painter.drawLine(center, QPointF(x, y))
+
+            sweep_pen = QPen(QColor('#26f7a4'))
+            sweep_pen.setWidth(3)
+            painter.setPen(sweep_pen)
+            painter.setBrush(QColor(38, 247, 164, 60))
+            painter.drawPie(rect, int((90 - self.angle - 30) * 16), int(60 * 16))
+
+            line_pen = QPen(QColor('#26f7a4'))
+            line_pen.setWidth(2)
+            painter.setPen(line_pen)
+            painter.drawLine(center, QPointF(
+                center.x() + radius * cos(self.angle * pi / 180.0),
+                center.y() - radius * sin(self.angle * pi / 180.0)
+            ))
+
+            painter.setPen(QColor('#95e8d5'))
+            painter.drawText(QPointF(center.x() - 24, center.y() + 6), 'RADAR')
+        finally:
+            painter.end()
+
 
 class DashboardPage(QWidget):
     def __init__(self, main_window):
@@ -93,6 +155,18 @@ class DashboardPage(QWidget):
         info_layout.addWidget(info_title)
         info_layout.addWidget(info_text)
 
+        radar_card = QFrame()
+        radar_card.setStyleSheet('background: #0f1218; border: 1px solid #23282f; border-radius: 16px;')
+        radar_layout = QVBoxLayout(radar_card)
+        radar_layout.setContentsMargins(12, 12, 12, 12)
+        radar_layout.setSpacing(12)
+
+        radar_label = QLabel('RADAR GÖRÜNTÜSÜ')
+        radar_label.setStyleSheet('color: #8afe8a; font-size: 14px; font-weight: bold;')
+        radar_layout.addWidget(radar_label)
+        radar_layout.addWidget(RadarWidget())
+
+        info_layout.addWidget(radar_card)
         info_layout.addStretch()
         info_scroll.setWidget(info_panel)
         page_layout.addWidget(info_scroll, stretch=1)
