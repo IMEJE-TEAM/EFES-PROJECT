@@ -75,7 +75,7 @@ class MainWindow(QMainWindow, Engine):
         self.btn_auto = QPushButton(" [05] OTONOM NAVİGASYON")
         self.btn_auto.setCheckable(True)
 
-        self.btn_config = QPushButton(" [06] KONFİGÜRASYON")
+        self.btn_config = QPushButton(" [06] SİSTEM PANELİ")
         self.btn_config.setCheckable(True)
 
         
@@ -118,7 +118,8 @@ class MainWindow(QMainWindow, Engine):
         self.stacked_widget.addWidget(self.iha_page)
         self.map_page = MapPage(self)
         self.stacked_widget.addWidget(self.map_page)        
-        self.stacked_widget.addWidget(SettingsPage(self))
+        self.settings_page = SettingsPage(self)
+        self.stacked_widget.addWidget(self.settings_page)
 
 
 
@@ -286,41 +287,6 @@ class MainWindow(QMainWindow, Engine):
     def update_map_position(self, lat, lon):
         if hasattr(self, 'map_page'):
             self.map_page.update_drone(lat, lon)
-            
-        if hasattr(self, 'iha_page'):
-            import random
-            telemetry = {
-                'GPS_ground_speed': 15.2 + random.uniform(-1, 1),
-                'GPS_altitude': 410.5 + random.uniform(-2, 2),
-                'GPS_ground_course': (lon * 1000) % 360,
-                'verticalSpeed': random.uniform(-0.5, 0.5),
-                'GPS_hdop': random.uniform(0.8, 1.2),
-                'GPS_numSat': int(14 + random.uniform(0, 3)),
-                'navState': 'AUTO-NAV',
-                'GPS_coord[0]': round(lat, 6),
-                'GPS_coord[1]': round(lon, 6),
-                'escTemperature': 42.0 + random.uniform(-1, 1),
-                'vbat': 22.4 - random.uniform(0, 0.1),
-                'rssi': -68 + int(random.uniform(-4, 4)),
-                'activeWpNumber': 4,
-                'navTgtPos[0]': round(1200 + random.uniform(-5, 5), 1),
-                'navTgtPos[1]': round(800 + random.uniform(-5, 5), 1),
-                'navTgtPos[2]': 400,
-                'navVel[0]': round(10 + random.uniform(-0.5, 0.5), 2),
-                'navVel[1]': round(10 + random.uniform(-0.5, 0.5), 2),
-                'navVel[2]': round(random.uniform(-0.2, 0.2), 2),
-                'accSmooth[0]': round(random.uniform(-0.1, 0.1), 3),
-                'accSmooth[1]': round(random.uniform(-0.1, 0.1), 3),
-                'accSmooth[2]': round(9.8 + random.uniform(-0.05, 0.05), 3),
-                'gyroADC[0]': round(random.uniform(-0.5, 0.5), 2),
-                'gyroADC[1]': round(random.uniform(-0.5, 0.5), 2),
-                'gyroADC[2]': round(random.uniform(-0.5, 0.5), 2),
-                'magADC[0]': int(random.uniform(100, 150)),
-                'magADC[1]': int(random.uniform(100, 150)),
-                'magADC[2]': int(random.uniform(100, 150)),
-            }
-            self.iha_page.update_telemetry(telemetry)
-
     def setWindowTitle(self, title):
         # Prevent actual window title from changing
         if title == "SIPER Askeri":

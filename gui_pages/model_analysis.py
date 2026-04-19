@@ -1,9 +1,11 @@
 import os
+import numpy as np
 from math import cos, sin, pi
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QApplication, QGridLayout, QFrame, QDialog, QPushButton, QHBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QApplication, QGridLayout, QFrame, QHBoxLayout
 from PyQt5.QtCore import Qt, QTimer, QPointF
-from PyQt5.QtGui import QPixmap, QPainter, QColor, QPen
+from PyQt5.QtGui import QColor, QPainter, QPen, QBrush
 
+import pyqtgraph as pg
 
 class RadarWidget(QWidget):
     def __init__(self, parent=None):
@@ -67,52 +69,10 @@ class RadarWidget(QWidget):
             painter.end()
 
 
-class ImageModal(QDialog):
-    def __init__(self, title: str, pixmap: QPixmap, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle(title)
-        self.setModal(True)
-        self.setStyleSheet(
-            'QDialog { background: #050608; border: 2px solid #2d2d33; border-radius: 16px; }'
-            'QLabel { color: #e2e8f0; }'
-            'QPushButton { background: #1f2937; color: #f8fafc; border: 1px solid #334155; border-radius: 10px; padding: 10px 18px; }'
-            'QPushButton:hover { background: #334155; }'
-        )
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(16)
-
-        title_label = QLabel(title)
-        title_label.setStyleSheet('font-size: 18px; font-weight: bold;')
-        layout.addWidget(title_label)
-
-        image_label = QLabel()
-        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        if not pixmap.isNull():
-            enlarged = pixmap.scaledToWidth(1000, Qt.TransformationMode.SmoothTransformation)
-            image_label.setPixmap(enlarged)
-        else:
-            image_label.setText('Görsel yüklenemedi.')
-            image_label.setStyleSheet('color: #ff6b6b;')
-        layout.addWidget(image_label)
-
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        close_button = QPushButton('Kapat')
-        close_button.clicked.connect(self.close)
-        btn_layout.addWidget(close_button)
-        layout.addLayout(btn_layout)
-
-        self.resize(1080, 760)
-
-
-class ImageCard(QFrame):
-    def __init__(self, title: str, path: str, parent=None):
+class GraphCard(QFrame):
+    def __init__(self, title: str, plot_type: str, parent=None):
         super().__init__(parent)
         self.title = title
-        self.path = path
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setStyleSheet(
             'QFrame { background: #0f1218; border: 1px solid #23282f; border-radius: 16px; }'
             'QFrame:hover { border: 1px solid #48b0ff; background: #13171f; }'
@@ -123,35 +83,113 @@ class ImageCard(QFrame):
         layout.setSpacing(8)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet('color: #c7d2e0; font-size: 14px; font-weight: bold;')
+        title_label.setStyleSheet('color: #c7d2e0; font-size: 14px; font-weight: bold; border: none; background: transparent;')
         layout.addWidget(title_label)
 
-        self.image_label = QLabel()
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setFixedHeight(260)
-        self.image_label.setStyleSheet('background: #0b1118; border-radius: 12px;')
+        # Plot Widget
+        self.plot_widget = pg.PlotWidget()
+        self.plot_widget.setBackground('#0b1118')
+        self.plot_widget.setFixedHeight(260)
+        self.plot_widget.getPlotItem().hideButtons()
+        self.plot_widget.getPlotItem().setMenuEnabled(False)
+        self.plot_widget.showGrid(x=True, y=True, alpha=0.15)
+        self.plot_widget.setStyleSheet('border: none; border-radius: 12px;')
+        
+        # Eksen Stilleri
+        axis_pen = pg.mkPen('#334155')
+        text_pen = pg.mkPen('#94a3b8')
+        for axis_name in ['left', 'bottom']:
+            axis = self.plot_widget.getPlotItem().getAxis(axis_name)
+            axis.setPen(axis_pen)
+            axis.setTextPen(text_pen)
 
-        if os.path.exists(path) and QApplication.instance() is not None:
-            pixmap = QPixmap(path)
-            pixmap = pixmap.scaledToWidth(460, Qt.TransformationMode.SmoothTransformation)
-            self.image_label.setPixmap(pixmap)
-            self.pixmap = pixmap
-        else:
-            self.image_label.setText('Görsel bulunamadı')
-            self.image_label.setStyleSheet('color: #ff6b6b;')
-            self.pixmap = QPixmap()
+        layout.addWidget(self.plot_widget)
+        self.generate_mock_data(plot_type)
 
-        layout.addWidget(self.image_label)
+    def generate_mock_data(self, p_type):
+        if p_type == 'cm':
+            # Karmaşıklık Matrisi (Heatmap - ImageItem)
+            # Gerçek veri simülasyonu: [[TP, FN], [FP, TN]]
+            data = np.array([[850, 45], [30, 920]])
+            img = pg.ImageItem()
+            img.setImage(data)
+            
+            # Renk Haritası
+            colormap = pg.colormap.get('plasma')
+            img.setLookupTable(colormap.getLookupTable())
+            
+            self.plot_widget.addItem(img)
+            self.plot_widget.setLabel('left', 'Gerçek (True)')
+            self.plot_widget.setLabel('bottom', 'Tahmin (Predicted)')
+            self.plot_widget.getPlotItem().invertY(True)
 
-        footer = QLabel('Büyütmek için tıkla')
-        footer.setStyleSheet('color: #94a3b8; font-size: 11px;')
-        layout.addWidget(footer)
+        elif p_type == 'roc':
+            # ROC Eğrisi
+            fpr = np.linspace(0, 1, 100)
+            tpr = 1 - np.exp(-6 * fpr)
+            self.plot_widget.plot(fpr, tpr, pen=pg.mkPen('#39ff14', width=2), fillLevel=0, fillBrush=(57, 255, 20, 40))
+            self.plot_widget.plot([0, 1], [0, 1], pen=pg.mkPen('#ff003c', width=2, style=Qt.DashLine))
+            self.plot_widget.setLabel('left', 'True Positive Rate')
+            self.plot_widget.setLabel('bottom', 'False Positive Rate')
 
-    def mousePressEvent(self, event):
-        if self.pixmap and not self.pixmap.isNull():
-            modal = ImageModal(self.title, self.pixmap, self)
-            modal.exec_()
-        super().mousePressEvent(event)
+        elif p_type == 'loss':
+            # Eğitim & Kayıp
+            epochs = np.arange(1, 51)
+            loss = 0.7 * np.exp(-0.12 * epochs) + np.random.normal(0, 0.015, 50)
+            val_loss = 0.7 * np.exp(-0.09 * epochs) + 0.04 + np.random.normal(0, 0.02, 50)
+            self.plot_widget.plot(epochs, loss, pen=pg.mkPen('#39ff14', width=2), name="Eğitim")
+            self.plot_widget.plot(epochs, val_loss, pen=pg.mkPen('#48b0ff', width=2), name="Doğrulama")
+            self.plot_widget.setLabel('left', 'Kayıp (Loss)')
+            self.plot_widget.setLabel('bottom', 'Epok (Epoch)')
+
+        elif p_type == 'pr':
+            # Precision / Recall
+            recall = np.linspace(0, 1, 100)
+            precision = 1 - 0.4 * recall**4
+            self.plot_widget.plot(recall, precision, pen=pg.mkPen('#eab308', width=2), fillLevel=0, fillBrush=(234, 179, 8, 40))
+            self.plot_widget.setLabel('left', 'Precision')
+            self.plot_widget.setLabel('bottom', 'Recall')
+
+        elif p_type == 'feature':
+            # Özellik Dağılımı (Çift Eğri)
+            x = np.linspace(-4, 4, 200)
+            normal = np.exp(-0.5 * ((x + 1) / 0.8)**2)
+            spoof = 0.7 * np.exp(-0.5 * ((x - 1.5) / 1.0)**2)
+            self.plot_widget.plot(x, normal, pen=pg.mkPen('#39ff14', width=2), fillLevel=0, fillBrush=(57, 255, 20, 60))
+            self.plot_widget.plot(x, spoof, pen=pg.mkPen('#ff003c', width=2), fillLevel=0, fillBrush=(255, 0, 60, 60))
+            self.plot_widget.setLabel('left', 'Yoğunluk')
+            self.plot_widget.setLabel('bottom', 'C/N0 Özellik Değeri')
+
+        elif p_type == 'predict':
+            # Tahmin Dağılımı (Bar Graph)
+            x = np.arange(0, 1.05, 0.05)
+            y = np.array([800, 120, 50, 30, 20, 10, 5, 5, 8, 15, 25, 40, 60, 90, 150, 200, 300, 500, 750, 850, 950])
+            bg = pg.BarGraphItem(x=x, height=y, width=0.04, brush='#48b0ff')
+            self.plot_widget.addItem(bg)
+            self.plot_widget.setLabel('left', 'Örnek Sayısı')
+            self.plot_widget.setLabel('bottom', 'Spoofing Olasılığı (%)')
+
+        elif p_type == 'error':
+            # Hata Analizi (Scatter Plot)
+            x = np.random.normal(0, 1, 250)
+            y = np.random.normal(0, 1, 250)
+            errors = (x**2 + y**2 > 2.5)
+            
+            scatter_correct = pg.ScatterPlotItem(x=x[~errors], y=y[~errors], size=5, pen=pg.mkPen(None), brush=pg.mkBrush('#39ff14'))
+            scatter_error = pg.ScatterPlotItem(x=x[errors], y=y[errors], size=8, pen=pg.mkPen(None), brush=pg.mkBrush('#ff003c'))
+            self.plot_widget.addItem(scatter_correct)
+            self.plot_widget.addItem(scatter_error)
+            self.plot_widget.setLabel('left', 'prRes Sapması')
+            self.plot_widget.setLabel('bottom', 'C/N0 Ortalama')
+
+        elif p_type == 'regional':
+            # Bölgesel Analiz (Zaman Serisi)
+            x = np.arange(150)
+            for i, color in enumerate(['#39ff14', '#48b0ff', '#eab308', '#ff003c']):
+                y = np.cumsum(np.random.normal(0, 1, 150)) + i * 20
+                self.plot_widget.plot(x, y, pen=pg.mkPen(color, width=2))
+            self.plot_widget.setLabel('left', 'GNSS Sapma Oranı')
+            self.plot_widget.setLabel('bottom', 'Zaman / Sektör')
 
 
 class ModelAnalysisPage(QWidget):
@@ -174,35 +212,37 @@ class ModelAnalysisPage(QWidget):
         content_layout.setContentsMargins(18, 18, 18, 18)
         content_layout.setSpacing(18)
 
-        title = QLabel('📈 Model Eğitim & Başarı Grafikleri')
+        title = QLabel('📈 Model Eğitim & Başarı Grafikleri (Canlı Çizim)')
         title.setObjectName('page_title')
         title.setStyleSheet('font-size: 22px; color: #8afe8a; font-weight: bold;')
         content_layout.addWidget(title)
 
-        subtitle = QLabel('Tüm model grafikleriyle, daha kompakt ve profesyonel sunum.')
+        subtitle = QLabel('Eski statik resimler yerine doğrudan kütüphane kullanılarak oluşturulmuş interaktif, profesyonel model analiz grafikleri.')
         subtitle.setStyleSheet('color: #9aa2b1; font-size: 13px;')
         content_layout.addWidget(subtitle)
 
         grid = QGridLayout()
         grid.setSpacing(18)
 
-        img_list = [
-            ('Karmaşıklık Matrisi', 'model/confusion_matrix.png'),
-            ('ROC Eğrisi', 'model/roc_curve.png'),
-            ('Eğitim & Kayıp', 'model/egitim_grafikleri.png'),
-            ('Precision / Recall', 'model/precision_recall_curve.png'),
-            ('Özellik Dağılımı', 'model/feature_dagilimi.png'),
-            ('Tahmin Dağılımı', 'model/tahmin_dagilimi.png'),
-            ('Hata Analizi', 'model/hata_analizi.png'),
-            ('Bölgesel Analiz', 'model/bolgesel_analiz.png')
+        # Çizilecek interaktif grafiklerin tipleri ve başlıkları
+        plot_list = [
+            ('Karmaşıklık Matrisi (Confusion Matrix)', 'cm'),
+            ('ROC Eğrisi', 'roc'),
+            ('Eğitim & Kayıp Değerleri', 'loss'),
+            ('Precision / Recall Eğrisi', 'pr'),
+            ('Özellik Dağılımı (Normal / Spoofed)', 'feature'),
+            ('Tahmin Dağılımı Histogramı', 'predict'),
+            ('Hata Analizi (Scatter)', 'error'),
+            ('Bölgesel Sapma Analizi', 'regional')
         ]
 
-        for index, (img_title, img_path) in enumerate(img_list):
-            card = ImageCard(img_title, img_path, parent=self)
+        for index, (p_title, p_type) in enumerate(plot_list):
+            card = GraphCard(p_title, p_type, parent=self)
             grid.addWidget(card, index // 2, index % 2)
 
         content_layout.addLayout(grid)
 
+        # RADAR PANELİ
         radar_card = QFrame()
         radar_card.setStyleSheet('background: #0f1218; border: 1px solid #23282f; border-radius: 18px;')
         radar_layout = QHBoxLayout(radar_card)

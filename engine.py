@@ -58,6 +58,31 @@ class DataWorker(QObject):
             self.gps_ready.emit(lat, lon)
             self.gps_index = (self.gps_index + 1) % len(self.gps_path)
 
+class TelemetryWorker(QThread):
+    telemetry_ready = pyqtSignal(dict)
+
+    def __init__(self, csv_path):
+        super().__init__()
+        self.csv_path = csv_path
+        self.is_running = True
+
+    def run(self):
+        try:
+            for chunk in pd.read_csv(self.csv_path, chunksize=1000):
+                if not self.is_running:
+                    break
+                for index, row in chunk.iterrows():
+                    if not self.is_running:
+                        break
+                    self.telemetry_ready.emit(row.to_dict())
+                    self.msleep(100)
+        except Exception as e:
+            print(f"Hata: {e}")
+
+    def stop(self):
+        self.is_running = False
+        self.wait()
+
 class PgGraph(pg.PlotWidget):
     def __init__(self, left_name:str, bottom_name:str):
         from PyQt5.QtWidgets import QApplication
@@ -105,7 +130,7 @@ class PgGraph(pg.PlotWidget):
             
 class Engine():
     def Thread(self):
-        #Thread
+        # 1. Eski Simülasyon Worker'ı (Grafikler ve Loglar İçin)
         self.data_worker = DataWorker(model=self.ai_model, scaler=self.ai_scaler, csv_path="model\\test_senaryosu.csv")
         self.kanal = QThread()
             
@@ -116,10 +141,57 @@ class Engine():
         self.timer.timeout.connect(self.data_worker.process_data)
 
         self.data_worker.data_ready.connect(self.graph_update)
-        self.data_worker.gps_ready.connect(self.update_map_position)
+        # gps_ready sinyalini haritaya bağlamıyoruz, çünkü artık TelemetryWorker'dan besleniyor
 
         self.kanal.started.connect(self.timer.start)
         self.kanal.start()
+
+        # 2. Yeni Telemetri Worker'ı (İHA Telemetri ve Harita İçin)
+        self.telemetry_worker = TelemetryWorker(csv_path="model2\\datas.csv")
+        self.telemetry_worker.telemetry_ready.connect(self.process_telemetry)
+        self.telemetry_worker.start()
+
+    def process_telemetry(self, telemetry_data):
+        # CSV'deki "GPS_coord[0]" ve "GPS_coord[1]" sütunlarından harita koordinatlarını çekiyoruz
+        lat = float(telemetry_data.get('GPS_coord[0]', 38.7312))
+        lon = float(telemetry_data.get('GPS_coord[1]', 35.4787))
+        self.update_map_position(lat, lon)
+        
+        if hasattr(self, 'settings_page'):
+            self.settings_page.update_sys_telemetry(telemetry_data)
+
+        if hasattr(self, 'iha_page'):
+            formatted_telemetry = {
+                'GPS_ground_speed': float(telemetry_data.get('GPS_speed (m/s)', 0.0)),
+                'GPS_altitude': float(telemetry_data.get('GPS_altitude', 0.0)),
+                'GPS_ground_course': float(telemetry_data.get('GPS_ground_course', 0.0)),
+                'verticalSpeed': float(telemetry_data.get('navVel[2]', 0.0)),
+                'GPS_hdop': float(telemetry_data.get('GPS_hdop', 0.0)),
+                'GPS_numSat': int(telemetry_data.get('GPS_numSat', 0)),
+                'navState': str(telemetry_data.get('Nav State', 'AUTO-NAV')),
+                'GPS_coord[0]': lat,
+                'GPS_coord[1]': lon,
+                'escTemperature': float(telemetry_data.get('escTemperature', 0.0)),
+                'vbat': float(telemetry_data.get('vbat (V)', 0.0)),
+                'rssi': float(telemetry_data.get('rssi', 0.0)),
+                'activeWpNumber': int(telemetry_data.get('activeWpNumber', 0)),
+                'navTgtPos[0]': float(telemetry_data.get('navTgtPos[0]', 0.0)),
+                'navTgtPos[1]': float(telemetry_data.get('navTgtPos[1]', 0.0)),
+                'navTgtPos[2]': float(telemetry_data.get('navTgtPos[2]', 0.0)),
+                'navVel[0]': float(telemetry_data.get('navVel[0]', 0.0)),
+                'navVel[1]': float(telemetry_data.get('navVel[1]', 0.0)),
+                'navVel[2]': float(telemetry_data.get('navVel[2]', 0.0)),
+                'accSmooth[0]': float(telemetry_data.get('accSmooth[0]', 0.0)),
+                'accSmooth[1]': float(telemetry_data.get('accSmooth[1]', 0.0)),
+                'accSmooth[2]': float(telemetry_data.get('accSmooth[2]', 0.0)),
+                'gyroADC[0]': float(telemetry_data.get('gyroADC[0]', 0.0)),
+                'gyroADC[1]': float(telemetry_data.get('gyroADC[1]', 0.0)),
+                'gyroADC[2]': float(telemetry_data.get('gyroADC[2]', 0.0)),
+                'magADC[0]': float(telemetry_data.get('magADC[0]', 0.0)),
+                'magADC[1]': float(telemetry_data.get('magADC[1]', 0.0)),
+                'magADC[2]': float(telemetry_data.get('magADC[2]', 0.0)),
+            }
+            self.iha_page.update_telemetry(formatted_telemetry)
 
     def graph_create_add(self):
         from PyQt5.QtWidgets import QLabel
