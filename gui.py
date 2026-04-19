@@ -1,13 +1,21 @@
-﻿import csv
+﻿import os
+import sys
+import csv
 import re
 from engine import Engine
 from gui_pages.dashboard import DashboardPage
 from gui_pages.model_analysis import ModelAnalysisPage
 from gui_pages.logs import LogsPage
-
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
+from gui_pages.map_page import MapPage
+from gui_pages.settings_page import SettingsPage
+
+
+
+
+
 
 class MainWindow(QMainWindow, Engine):
     def __init__(self):
@@ -40,7 +48,6 @@ class MainWindow(QMainWindow, Engine):
         app_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         sidebar_layout.addWidget(app_title)
 
-        # Sekme Butonları
         self.btn_dashboard = QPushButton("📊 Canlı İzleme (Dashboard)")
         self.btn_dashboard.setCheckable(True)
         self.btn_dashboard.setChecked(True)
@@ -51,9 +58,18 @@ class MainWindow(QMainWindow, Engine):
         self.btn_logs = QPushButton("📂 Log Yönetimi")
         self.btn_logs.setCheckable(True)
 
-        for btn in [self.btn_dashboard, self.btn_model, self.btn_logs]:
+        self.btn_auto = QPushButton("🌍 Otonom Uçuş & Harita")
+        self.btn_auto.setCheckable(True)
+
+        self.btn_config = QPushButton("⚙️ Görev & Yapılandırma")
+        self.btn_config.setCheckable(True)
+
+        
+        for btn in [self.btn_dashboard, self.btn_model, self.btn_logs, self.btn_auto, self.btn_config]:
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             sidebar_layout.addWidget(btn)
+
+       
         
         sidebar_layout.addStretch()
 
@@ -70,7 +86,7 @@ class MainWindow(QMainWindow, Engine):
 
         main_layout.addWidget(self.sidebar)
 
-        # 2. İÇERİK ALANI
+        
         content_container = QWidget()
         content_layout = QVBoxLayout(content_container)
         content_layout.setContentsMargins(25, 20, 25, 20)
@@ -79,18 +95,31 @@ class MainWindow(QMainWindow, Engine):
         self.create_header_panel()
         content_layout.addWidget(self.header_frame)
 
-        # Stacked Widget (Sayfalar)
+       # Stacked Widget (Sayfalar)
         self.stacked_widget = QStackedWidget()
         self.stacked_widget.addWidget(DashboardPage(self))
         self.stacked_widget.addWidget(ModelAnalysisPage())
         self.stacked_widget.addWidget(LogsPage(self))
+        self.stacked_widget.addWidget(MapPage(self))        
+        self.stacked_widget.addWidget(SettingsPage(self))
+
+
+
         content_layout.addWidget(self.stacked_widget)
         main_layout.addWidget(content_container)
+
+
 
         # Menü Sinyalleri
         self.btn_dashboard.clicked.connect(lambda: self.switch_page(0))
         self.btn_model.clicked.connect(lambda: self.switch_page(1))
         self.btn_logs.clicked.connect(lambda: self.switch_page(2))
+        self.btn_auto.clicked.connect(lambda: self.switch_page(3))   
+        self.btn_config.clicked.connect(lambda: self.switch_page(4)) 
+
+
+
+
 
         # Thread Başlangıcı
         self.Thread()
@@ -221,6 +250,8 @@ class MainWindow(QMainWindow, Engine):
         self.btn_dashboard.setChecked(index == 0)
         self.btn_model.setChecked(index == 1)
         self.btn_logs.setChecked(index == 2)
+        self.btn_auto.setChecked(index == 3)
+        self.btn_config.setChecked(index == 4)
 
     def setWindowTitle(self, title):
         # Prevent actual window title from changing
