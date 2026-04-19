@@ -16,51 +16,55 @@ class RadarWidget(QWidget):
 
     def rotate(self):
         self.angle = (self.angle + 2.5) % 360
-        self.update()
+        if self.isVisible():
+            self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHints(QPainter.Antialiasing | QPainter.TextAntialiasing)
-        rect = self.rect().adjusted(10, 10, -10, -10)
-        center = rect.center()
-        radius = min(rect.width(), rect.height()) / 2 - 10
+        try:
+            painter.setRenderHints(QPainter.Antialiasing | QPainter.TextAntialiasing)
+            rect = self.rect().adjusted(10, 10, -10, -10)
+            center = rect.center()
+            radius = min(rect.width(), rect.height()) / 2 - 10
 
-        painter.setBrush(QColor('#081011'))
-        painter.setPen(Qt.NoPen)
-        painter.drawEllipse(center, radius + 10, radius + 10)
+            painter.setBrush(QColor('#081011'))
+            painter.setPen(Qt.NoPen)
+            painter.drawEllipse(center, radius + 10, radius + 10)
 
-        grid_pen = QPen(QColor('#1f354c'), 2)
-        painter.setPen(grid_pen)
-        painter.setBrush(Qt.NoBrush)
-        for ring in range(1, 5):
-            painter.drawEllipse(center, radius / 5 * ring, radius / 5 * ring)
-        painter.drawLine(center.x() - radius, center.y(), center.x() + radius, center.y())
-        painter.drawLine(center.x(), center.y() - radius, center.x(), center.y() + radius)
+            grid_pen = QPen(QColor('#1f354c'), 2)
+            painter.setPen(grid_pen)
+            painter.setBrush(Qt.NoBrush)
+            for ring in range(1, 5):
+                painter.drawEllipse(center, radius / 5 * ring, radius / 5 * ring)
+            painter.drawLine(center.x() - radius, center.y(), center.x() + radius, center.y())
+            painter.drawLine(center.x(), center.y() - radius, center.x(), center.y() + radius)
 
-        painter.setPen(QPen(QColor('#224362'), 1))
-        for i in range(0, 360, 30):
-            angle = i * pi / 180.0
-            x = center.x() + radius * 0.96 * cos(angle)
-            y = center.y() + radius * 0.96 * sin(angle)
-            painter.drawLine(center, QPointF(x, y))
+            painter.setPen(QPen(QColor('#224362'), 1))
+            for i in range(0, 360, 30):
+                angle = i * pi / 180.0
+                x = center.x() + radius * 0.96 * cos(angle)
+                y = center.y() + radius * 0.96 * sin(angle)
+                painter.drawLine(center, QPointF(x, y))
 
-        sweep_pen = QPen(QColor('#26f7a4'))
-        sweep_pen.setWidth(3)
-        painter.setPen(sweep_pen)
-        painter.setBrush(QColor(38, 247, 164, 80))
-        painter.drawPie(rect, int((90 - self.angle - 40) * 16), int(80 * 16))
+            sweep_pen = QPen(QColor('#26f7a4'))
+            sweep_pen.setWidth(3)
+            painter.setPen(sweep_pen)
+            painter.setBrush(QColor(38, 247, 164, 80))
+            painter.drawPie(rect, int((90 - self.angle - 40) * 16), int(80 * 16))
 
-        line_pen = QPen(QColor('#26f7a4'))
-        line_pen.setWidth(2)
-        painter.setPen(line_pen)
-        painter.drawLine(center, QPointF(
-            center.x() + radius * cos(self.angle * pi / 180.0),
-            center.y() - radius * sin(self.angle * pi / 180.0)
-        ))
+            line_pen = QPen(QColor('#26f7a4'))
+            line_pen.setWidth(2)
+            painter.setPen(line_pen)
+            painter.drawLine(center, QPointF(
+                center.x() + radius * cos(self.angle * pi / 180.0),
+                center.y() - radius * sin(self.angle * pi / 180.0)
+            ))
 
-        painter.setPen(QPen(QColor('#95e8d5')))
-        painter.setFont(self.font())
-        painter.drawText(center.x() - 30, center.y() + 6, 'RADAR')
+            painter.setPen(QPen(QColor('#95e8d5')))
+            painter.setFont(self.font())
+            painter.drawText(center.x() - 30, center.y() + 6, 'RADAR')
+        finally:
+            painter.end()
 
 
 class ImageModal(QDialog):

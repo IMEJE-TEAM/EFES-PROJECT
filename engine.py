@@ -43,8 +43,11 @@ class DataWorker(QObject):
         new_row = next(self.data_iterator)
         self.data_buffer.append(new_row)
         if len(self.data_buffer) == 30:
-            data_array = np.array(list(self.data_buffer))
-            normalized_data = self.scaler.transform(data_array)
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                data_array = np.array(list(self.data_buffer))
+                normalized_data = self.scaler.transform(data_array)
             normalized_tensor = normalized_data.reshape(1,30,8)
             prediction = self.model.predict(normalized_tensor, verbose = 0)
             score = float(prediction[0][0])
