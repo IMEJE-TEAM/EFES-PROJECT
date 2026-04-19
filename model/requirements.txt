@@ -9,6 +9,9 @@ h5py>=3.14.0
 joblib>=1.5.3
 pillow>=12.1.1
 rich>=14.3.3
+PyQt5>=5.15
+PyQt5-WebEngine>=5.15
+pyqtgraph>=0.13.0
 
 fastapi
 uvicorn
