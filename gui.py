@@ -284,9 +284,9 @@ class MainWindow(QMainWindow, Engine):
         self.btn_auto.setChecked(index == 4)
         self.btn_config.setChecked(index == 5)
 
-    def update_map_position(self, lat, lon):
+    def update_map_position(self, rLat, rLon, gLat, gLon):
         if hasattr(self, 'map_page'):
-            self.map_page.update_drone(lat, lon)
+            self.map_page.update_drone_comparison(rLat, rLon, gLat, gLon)
     def setWindowTitle(self, title):
         # Prevent actual window title from changing
         if title == "SIPER Askeri":
