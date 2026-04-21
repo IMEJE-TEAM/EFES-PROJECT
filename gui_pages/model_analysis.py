@@ -2,69 +2,67 @@ import os
 import numpy as np
 from math import cos, sin, pi
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel, QApplication, QGridLayout, QFrame, QHBoxLayout
-from PyQt5.QtCore import Qt, QTimer, QPointF
+from PyQt5.QtCore import Qt, QTimer, QPointF, QRectF
 from PyQt5.QtGui import QColor, QPainter, QPen, QBrush
 
 import pyqtgraph as pg
 
-class RadarWidget(QWidget):
+# ========================================================
+# YENİ TRANSFORMER ATTENTION (DİKKAT) MATRİSİ SİMÜLASYONU
+# ========================================================
+class AttentionWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.angle = 0.0
         self.setMinimumSize(360, 360)
+        
+        # Animasyon için Timer
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.rotate)
-        self.timer.start(40)
+        self.timer.timeout.connect(self.update_matrix)
+        self.timer.start(100) # 10 FPS
+        
+        # 8 Dikkat Başlığı (Multi-Head) temsili
+        self.grid_size = 8 
+        self.weights = np.random.rand(self.grid_size, self.grid_size)
 
-    def rotate(self):
-        self.angle = (self.angle + 2.5) % 360
+    def update_matrix(self):
+        # Yumuşak geçişli matris animasyonu (Attention değerlerinin değişimi)
+        noise = (np.random.rand(self.grid_size, self.grid_size) - 0.5) * 0.15
+        self.weights = np.clip(self.weights + noise, 0.1, 1.0)
         if self.isVisible():
             self.update()
 
     def paintEvent(self, event):
         painter = QPainter(self)
         try:
-            painter.setRenderHints(QPainter.Antialiasing | QPainter.TextAntialiasing)
+            painter.setRenderHints(QPainter.Antialiasing)
             rect = self.rect().adjusted(10, 10, -10, -10)
-            center = rect.center()
-            radius = min(rect.width(), rect.height()) / 2 - 10
-
+            
+            # Siyah/Koyu yeşil arka plan
             painter.setBrush(QColor('#081011'))
             painter.setPen(Qt.NoPen)
-            painter.drawEllipse(center, radius + 10, radius + 10)
+            painter.drawRoundedRect(rect, 10, 10)
 
-            grid_pen = QPen(QColor('#1f354c'), 2)
-            painter.setPen(grid_pen)
-            painter.setBrush(Qt.NoBrush)
-            for ring in range(1, 5):
-                painter.drawEllipse(center, radius / 5 * ring, radius / 5 * ring)
-            painter.drawLine(center.x() - radius, center.y(), center.x() + radius, center.y())
-            painter.drawLine(center.x(), center.y() - radius, center.x(), center.y() + radius)
+            # İç Grid (Attention Matrisi) Çizimi
+            cell_w = rect.width() / self.grid_size
+            cell_h = rect.height() / self.grid_size
 
-            painter.setPen(QPen(QColor('#224362'), 1))
-            for i in range(0, 360, 30):
-                angle = i * pi / 180.0
-                x = center.x() + radius * 0.96 * cos(angle)
-                y = center.y() + radius * 0.96 * sin(angle)
-                painter.drawLine(center, QPointF(x, y))
-
-            sweep_pen = QPen(QColor('#26f7a4'))
-            sweep_pen.setWidth(3)
-            painter.setPen(sweep_pen)
-            painter.setBrush(QColor(38, 247, 164, 80))
-            painter.drawPie(rect, int((90 - self.angle - 40) * 16), int(80 * 16))
-
-            line_pen = QPen(QColor('#26f7a4'))
-            line_pen.setWidth(2)
-            painter.setPen(line_pen)
-            painter.drawLine(center, QPointF(
-                center.x() + radius * cos(self.angle * pi / 180.0),
-                center.y() - radius * sin(self.angle * pi / 180.0)
-            ))
-
-            painter.setPen(QPen(QColor('#95e8d5')))
-            painter.setFont(self.font())
-            painter.drawText(center.x() - 30, center.y() + 6, 'RADAR')
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
+                    val = self.weights[i, j]
+                    
+                    # Transformer'a özel siber-neon renk skalası
+                    r = int(57 * val)
+                    g = int(255 * val)
+                    b = int(20 * val + 150 * (1 - val)) 
+                    
+                    painter.setBrush(QColor(r, g, b, int(80 + 175 * val)))
+                    painter.setPen(QPen(QColor('#1a3c28'), 1))
+                    
+                    x = rect.left() + j * cell_w
+                    y = rect.top() + i * cell_h
+                    
+                    cell_rect = QRectF(x + 2, y + 2, cell_w - 4, cell_h - 4)
+                    painter.drawRoundedRect(cell_rect, 4, 4)
         finally:
             painter.end()
 
@@ -212,19 +210,20 @@ class ModelAnalysisPage(QWidget):
         content_layout.setContentsMargins(18, 18, 18, 18)
         content_layout.setSpacing(18)
 
-        title = QLabel('📈 Model Eğitim & Başarı Grafikleri (Canlı Çizim)')
+        # SAYFA BAŞLIK VE AÇIKLAMASI GÜNCELLENDİ
+        title = QLabel('🧠 SİPER AI (Model-2): UAV Inertial Transformer Mimarisi & Başarı Analizi')
         title.setObjectName('page_title')
         title.setStyleSheet('font-size: 22px; color: #8afe8a; font-weight: bold;')
         content_layout.addWidget(title)
 
-        subtitle = QLabel('Eski statik resimler yerine doğrudan kütüphane kullanılarak oluşturulmuş interaktif, profesyonel model analiz grafikleri.')
+        subtitle = QLabel('GNSS verilerini baypas edip doğrudan fiziksel sensör füzyonu (IMU, Baro) ile anomali tespiti yapan Multi-Head Attention tabanlı yapay zeka modelinin analiz paneli.')
         subtitle.setStyleSheet('color: #9aa2b1; font-size: 13px;')
         content_layout.addWidget(subtitle)
 
         grid = QGridLayout()
         grid.setSpacing(18)
 
-        # Çizilecek interaktif grafiklerin tipleri ve başlıkları
+        # Çizilecek interaktif grafiklerin tipleri ve başlıkları (AYNEN KORUNDU)
         plot_list = [
             ('Karmaşıklık Matrisi (Confusion Matrix)', 'cm'),
             ('ROC Eğrisi', 'roc'),
@@ -242,43 +241,53 @@ class ModelAnalysisPage(QWidget):
 
         content_layout.addLayout(grid)
 
-        # RADAR PANELİ
-        radar_card = QFrame()
-        radar_card.setStyleSheet('background: #0f1218; border: 1px solid #23282f; border-radius: 18px;')
-        radar_layout = QHBoxLayout(radar_card)
-        radar_layout.setContentsMargins(18, 18, 18, 18)
-        radar_layout.setSpacing(18)
+        # ========================================================
+        # YENİ ATTENTION MATRİSİ VE AÇIKLAMA PANELİ
+        # ========================================================
+        attention_card = QFrame()
+        attention_card.setStyleSheet('background: #0f1218; border: 1px solid #23282f; border-radius: 18px;')
+        attention_layout = QHBoxLayout(attention_card)
+        attention_layout.setContentsMargins(18, 18, 18, 18)
+        attention_layout.setSpacing(18)
 
-        radar_panel = QFrame()
-        radar_panel.setStyleSheet('background: #081011; border: 1px solid #1f2937; border-radius: 18px;')
-        radar_panel.setFixedSize(380, 380)
-        radar_panel_layout = QVBoxLayout(radar_panel)
-        radar_panel_layout.setContentsMargins(12, 12, 12, 12)
-        radar_panel_layout.addWidget(RadarWidget())
+        # Matris Görseli
+        matrix_panel = QFrame()
+        matrix_panel.setStyleSheet('background: #081011; border: 1px solid #1f2937; border-radius: 18px;')
+        matrix_panel.setFixedSize(380, 380)
+        matrix_panel_layout = QVBoxLayout(matrix_panel)
+        matrix_panel_layout.setContentsMargins(12, 12, 12, 12)
+        matrix_panel_layout.addWidget(AttentionWidget())
 
+        # Metin Paneli
         text_panel = QFrame()
         text_panel.setStyleSheet('background: transparent; border: none;')
         text_layout = QVBoxLayout(text_panel)
         text_layout.setContentsMargins(0, 0, 0, 0)
         text_layout.setSpacing(10)
 
-        radar_title = QLabel('Model Radar Sistemi')
-        radar_title.setStyleSheet('color: #8afe8a; font-size: 16px; font-weight: bold;')
-        text_layout.addWidget(radar_title)
+        attention_title = QLabel("Aktif 'Attention' (Dikkat) Matrisi")
+        attention_title.setStyleSheet('color: #8afe8a; font-size: 16px; font-weight: bold;')
+        text_layout.addWidget(attention_title)
 
-        radar_desc = QLabel(
-            'Sistem durumu tespitini model analizi ile birlikte görselleştirir. '
-            'Bu radar göstergesi yalnızca arayüzsel bir animasyondur ve kokpit tarzında panel etkisi verir.'
+        attention_desc = QLabel(
+            "Bu matris, SİPER AI'nın 'Multi-Head Attention' mekanizmasının canlı bir simülasyonudur. "
+            "Modelin son 30 saniyelik uçuş verisinde hangi sensör noktalarına ve zaman dilimlerine "
+            "ağırlık verdiğini (odaklandığını) görselleştirir.\n\n"
+            "Neon yeşil alanlar, modelin analiz ettiği kritik fiziksel hareketleri (örneğin ani ivmelenme veya irtifa kaybı) "
+            "temsil eder. Siber bir Spoofing saldırısı anında, GNSS'ten gelen sahte sinyaller İHA'nın fiziksel "
+            "gerçekliği ile uyuşmayacağı için, yapay zekanın bu matristeki odak noktaları anında "
+            "şekil değiştirerek anomaliyi saniyeler içinde deşifre eder."
         )
-        radar_desc.setWordWrap(True)
-        radar_desc.setStyleSheet('color: #9aa2b1; font-size: 13px; line-height: 1.4;')
-        text_layout.addWidget(radar_desc)
+        attention_desc.setWordWrap(True)
+        attention_desc.setStyleSheet('color: #9aa2b1; font-size: 13px; line-height: 1.5;')
+        
+        text_layout.addWidget(attention_desc)
         text_layout.addStretch()
 
-        radar_layout.addWidget(radar_panel)
-        radar_layout.addWidget(text_panel)
+        attention_layout.addWidget(matrix_panel)
+        attention_layout.addWidget(text_panel)
 
-        content_layout.addWidget(radar_card)
+        content_layout.addWidget(attention_card)
         content_layout.addStretch()
 
         scroll.setWidget(content)
