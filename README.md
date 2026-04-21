@@ -22,7 +22,7 @@ SİPER, birbirini doğrulayan ve ardışık çalışan iki ana yapay zekâ katma
 * **Doğruluk Oranı:** %98+ başarı ile anomali tespiti yapılır.
 
 ### 🧠 KATMAN 2: BKZS-AURA (MÜDAHALE VE ADAPTASYON)
-**BKZS-AURA (Akıllı Uygulama ve Rotalama Algoritması)**, saldırı anında kontrolü devralan karar mekanizmasıdır.
+**BKZS-AURA (Akıllı Uygulama ve Rotalama Algoritması)**, saldırı anında kontrollü devralan karar mekanizmasıdır.
 
 * **Siber Tahkimat:** Saldırı tespit edildiği anda sahte veri izole edilir; navigasyon **IMU** ve **VIO (Görsel Odometri)** sistemine aktarılır.
 * **Dinamik Rotalama:** **D* Lite** algoritması ile tehdit bölgeleri "yüksek maliyetli alan" tanımlanır ve otonom yeni rota çizilir.
@@ -57,8 +57,18 @@ Fiziksel test kısıtlarını aşmak ve sistemi en zorlu koşullara hazırlamak 
 
 ---
 
-## 📜 VI. LİSANS VE BİLGİLENDİRME
+## 📜 VI. LİSANS, ATIF VE BİLGİLENDİRME
+
 Bu proje, **Trabzon Üniversitesi Yapay Zekâ Mühendisliği** bünyesinde EFES-2026 Tatbikatı başvurusu kapsamında **İMEJE Takımı** tarafından geliştirilmiştir. Tüm hakları saklıdır.
+
+**Veri Seti Atıf Bildirimi (Dataset Acknowledgement)**
+Projemizin geliştirilmesi ve yapay zekâ modellerinin eğitilmesinde aşağıdaki veri seti kullanılmıştır. Açık kaynak dünyasına yaptıkları değerli katkı için yazarlara teşekkür ederiz:
+
+> We used the following dataset in the development and training of this project. We would like to thank the authors for their valuable open-source contribution:
+> * **Dataset:** Fixed-Wing UAS Telemetry Benchmark (IDF_DS): 240 Flights for ML and Intelligent Trajectory Optimization (v1.0)
+> * **Author:** García Gascón, C. (2025)
+> * **Source:** Zenodo
+> * **DOI:** [https://doi.org/10.5281/zenodo.16992976](https://doi.org/10.5281/zenodo.16992976)
 
 ---
 <p align="center">
