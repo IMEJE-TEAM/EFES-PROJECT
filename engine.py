@@ -30,13 +30,12 @@ class TelemetryWorker(QThread):
 
     def run(self):
         try:
-            # Gerçek zamanlı uçuşu simüle etmek için satır satır okuyup gecikme veriyoruz
             df = pd.read_csv(self.csv_path)
             for index, row in df.iterrows():
                 if not self.is_running:
                     break
                 self.telemetry_ready.emit(row.to_dict())
-                self.msleep(100) # 100ms = 10Hz Yayın Hızı
+                self.msleep(20) # 50 FPS Hızında Akıcı Veri
         except Exception as e:
             print(f"Telemetri Hatası: {e}")
 
@@ -45,100 +44,107 @@ class TelemetryWorker(QThread):
         self.wait()
 
 # ==========================================
-# 2. ARAYÜZ GRAFİK SINIFI
+# 2. ARAYÜZ GRAFİK SINIFI (BTC / TRADINGVIEW STİLİ)
 # ==========================================
 class PgGraph(pg.PlotWidget):
-    def __init__(self, left_name:str, bottom_name:str):
+    def __init__(self, left_name:str, bottom_name:str, c_hex='#39ff14', c_rgb=(57,255,20)):
         from PyQt5.QtWidgets import QApplication
         if QApplication.instance() is None:
             raise RuntimeError("QApplication must be created before PgGraph")
         super().__init__()
-        self.setMinimumHeight(150)
-        self.setBackground('#000000')
-        self.getPlotItem().getViewBox().setBackgroundColor('#000000')
-        self.showGrid(x=True, y=True, alpha=0.18)
+        self.setMinimumHeight(160)
+        self.setBackground('#050907')
+        self.getPlotItem().getViewBox().setBackgroundColor('#050907')
+        self.showGrid(x=True, y=True, alpha=0.1)
         self.setLabel('left', left_name)
         self.setLabel('bottom', bottom_name)
+
+        # GRAFİĞİ TAMAMEN KİLİTLE (Fareyle Bozulmayı Engeller)
+        self.getPlotItem().setMouseEnabled(x=False, y=False)
         self.getPlotItem().hideButtons()
         self.getPlotItem().setMenuEnabled(False)
         self.getPlotItem().showAxis('top', False)
         self.getPlotItem().showAxis('right', False)
-        axis_pen = pg.mkPen('#5c5f66')
-        text_pen = pg.mkPen('#8e929b')
+
+        axis_pen = pg.mkPen('#1a3c28')
+        text_pen = pg.mkPen('#558b6e')
         self.getPlotItem().getAxis('left').setPen(axis_pen)
         self.getPlotItem().getAxis('left').setTextPen(text_pen)
         self.getPlotItem().getAxis('bottom').setPen(axis_pen)
         self.getPlotItem().getAxis('bottom').setTextPen(text_pen)
 
-        self.kalem = pg.mkPen(color=(219, 37, 8), width=2)
-        self.data = np.zeros(1000)
-        self.baseline = self.plot(np.zeros(1000), pen=pg.mkPen(None))
-        self.cizgi = self.plot(self.data, pen=self.kalem)
-        self.fill = pg.FillBetweenItem(self.cizgi, self.baseline, brush=(219, 37, 8, 40))
+        # ÇİZGİ VE ALAN DOLGUSU (Antialias ile pürüzsüzleştirildi)
+        self.kalem = pg.mkPen(color=c_rgb, width=2.5, antialias=True)
+        self.data_points = 200 # BTC grafiği gibi uzun hafıza
+        self.data = np.full(self.data_points, np.nan) # Boşluklar sıfır olmasın, NaN olsun
+
+        self.baseline = self.plot(np.zeros(self.data_points), pen=pg.mkPen(None))
+        self.cizgi = self.plot(self.data, pen=self.kalem, connect='finite')
+
+        # Gradyan Dolgu
+        r, g, b = c_rgb
+        self.fill = pg.FillBetweenItem(self.cizgi, self.baseline, brush=(r, g, b, 40))
         self.getPlotItem().addItem(self.fill)
-        self.getPlotItem().getViewBox().setMouseEnabled(x=False, y=False)
 
     def set_theme(self, is_dark: bool):
-        if is_dark:
-            self.setBackground('#000000') 
-            self.getPlotItem().getViewBox().setBackgroundColor('#000000')
-            self.showGrid(x=True, y=True, alpha=0.18)
-            self.kalem.setColor(pg.mkColor(219, 37, 8))
+        pass # Tema artık sabit koyu askeri borsa stili
+
+    def update_value(self, new_val, alpha=0.15):
+        # ÜSTEL YUMUŞATMA (EMA) - Testere görüntülerini yok eder, süzülme hissi verir
+        if np.isnan(self.data[-1]):
+            smoothed_val = new_val
         else:
-            self.setBackground('#1f1f1f') 
-            self.getPlotItem().getViewBox().setBackgroundColor('#1f1f1f')
-            self.showGrid(x=True, y=True, alpha=0.18)
-            self.kalem.setColor(pg.mkColor(219, 37, 8))
-        self.cizgi.setPen(self.kalem)
+            smoothed_val = (self.data[-1] * (1 - alpha)) + (new_val * alpha)
+
+        self.data = np.roll(self.data, -1)
+        self.data[-1] = smoothed_val
+        self.cizgi.setData(self.data)
+
+        # DİNAMİK Y EKSENİ (Grafik hiçbir zaman dışarı taşmaz veya çok küçük kalmaz)
+        valid_data = self.data[~np.isnan(self.data)]
+        if len(valid_data) > 0:
+            min_y = np.min(valid_data)
+            max_y = np.max(valid_data)
+            padding = max((max_y - min_y) * 0.15, 0.5)
+            self.getPlotItem().setYRange(min_y - padding, max_y + padding)
             
 # ==========================================
 # 3. ANA MOTOR (SİPER YAPAY ZEKA MERKEZİ)
 # ==========================================
 class Engine():
     def Thread(self):
-        # SİPER AI İçin Hafıza Tanımlamaları
-        self.imu_buffer = deque(maxlen=30) # 30 Adımlık geçmişi tutar (SEQ_LEN)
+        self.imu_buffer = deque(maxlen=30)
         self.first_gps_lock = False
         
-        # Hayalet İkon (Mavi - Model) ve Gerçek İkon (Yeşil - GPS) koordinatları
         self.model_gps_x = 0.0
         self.model_gps_y = 0.0
 
-        # Tek bir Telemetri Worker'ı ile hem UI hem AI besleniyor
+        # ESKİ CSV'Yİ GÖRSELLİK İÇİN YÜKLE (test_senaryosu.csv)
+        try:
+            df_grafik = pd.read_csv("model/test_senaryosu.csv")
+            self.grafik_iterator = itertools.cycle(df_grafik.values)
+        except Exception as e:
+            print(f"[UYARI] Grafik CSV'si bulunamadı: {e}")
+            self.grafik_iterator = itertools.cycle([np.zeros(9)])
+
         self.telemetry_worker = TelemetryWorker(csv_path="model2/datas.csv")
         self.telemetry_worker.telemetry_ready.connect(self.process_telemetry)
         self.telemetry_worker.start()
 
     def load_model_scaler(self):
-        # Eski Keras kodlarını sildik, PyTorch modelini cihaz hafızasına alıyoruz.
         self.device = torch.device("cpu")
-        print("[SİSTEM] PyTorch SİPER AI Modeli CPU üzerinde başlatılıyor...")
-        
-        # Model mimarisi train.py'deki ile BİREBİR aynı olmalı
         self.ai_model = UAVInertialTransformer(input_dim=16, d_model=128, nhead=8, num_layers=4, dropout=0.15)
-        
         model_path = "uav_transformer_best.pth"
         if os.path.exists(model_path):
             checkpoint = torch.load(model_path, map_location=self.device)
             self.ai_model.load_state_dict(checkpoint['model_state_dict'])
-            print("[BAŞARILI] SİPER AI Beyni Yüklendi ve Aktif!")
-        else:
-            print("[KRİTİK HATA] Model ağırlıkları bulunamadı! Lütfen .pth dosyasını ana klasöre koyun.")
-            
         self.ai_model.to(self.device)
         self.ai_model.eval()
 
     def process_telemetry(self, telemetry_data):
-        # 1. Gerçek GPS (Uydudan gelen potansiyel tehlikeli veri)
         real_lat = float(telemetry_data.get('GPS_coord[0]', 38.7312))
         real_lon = float(telemetry_data.get('GPS_coord[1]', 35.4787))
 
-        if not self.first_gps_lock:
-            self.model_gps_x = real_lat
-            self.model_gps_y = real_lon
-            self.first_gps_lock = True
-
-        # 2. Model için 16 Sütunluk Fiziksel Veriyi Çekiyoruz (GPS YOK!)
         features = [
             float(telemetry_data.get('accSmooth[0]', 0.0)), float(telemetry_data.get('accSmooth[1]', 0.0)), float(telemetry_data.get('accSmooth[2]', 0.0)),
             float(telemetry_data.get('gyroADC[0]', 0.0)), float(telemetry_data.get('gyroADC[1]', 0.0)), float(telemetry_data.get('gyroADC[2]', 0.0)),
@@ -146,65 +152,62 @@ class Engine():
             float(telemetry_data.get('magADC[0]', 0.0)), float(telemetry_data.get('magADC[1]', 0.0)), float(telemetry_data.get('magADC[2]', 0.0)),
             float(telemetry_data.get('BaroAlt (cm)', 0.0)), float(telemetry_data.get('navVel[0]', 0.0)), float(telemetry_data.get('navVel[1]', 0.0)), float(telemetry_data.get('navVel[2]', 0.0))
         ]
+
+        if not self.first_gps_lock:
+            self.model_gps_x = real_lat
+            self.model_gps_y = real_lon
+            self.first_gps_lock = True
+            for _ in range(29):
+                self.imu_buffer.append(features)
+
         self.imu_buffer.append(features)
 
-        # ==========================================================
-        # SİPER KALKANI - YAPAY ZEKA KONTROLÜ
-        # ==========================================================
         oran = 0.0
         model_drift = 0.0
         
-        # Eğer buffer dolduysa (30 satır) yapay zeka tahmine başlar
         if len(self.imu_buffer) == 30:
             with torch.no_grad():
-                # Veriyi Tensöre çevir ve boyutunu [1, 30, 16] yap
                 input_tensor = torch.tensor([list(self.imu_buffer)], dtype=torch.float32).to(self.device)
-                
-                # Model Çıktısı (Delta: saniyedeki tahmini yer değiştirme)
                 predictions = self.ai_model(input_tensor)
-                delta_lat = predictions[0][0].item()
-                delta_lon = predictions[0][1].item()
                 
-                # Modelin hesapladığı Güvenli "Hayalet" Koordinat
-                self.model_gps_x += delta_lat
-                self.model_gps_y += delta_lon
+                raw_lat = predictions[0][0].item()
+                raw_lon = predictions[0][1].item()
+                
+                HIZ_CARPANI = 0.000005 
+                self.model_gps_x += (raw_lat * HIZ_CARPANI)
+                self.model_gps_y += (raw_lon * HIZ_CARPANI)
 
-                # MANTIK TESTİ: Gerçek GPS ile Modelin Tahmini arasındaki mesafeyi ölç
                 diff_lat = abs(real_lat - self.model_gps_x)
                 diff_lon = abs(real_lon - self.model_gps_y)
-                
-                # Matematiksel sapma oranını "Metre" tarzı okunabilir bir formata çekiyoruz
-                model_drift = math.sqrt(diff_lat**2 + diff_lon**2) * 50000 
+                model_drift = math.sqrt(diff_lat**2 + diff_lon**2) * 111000 
 
-                # KALKAN KURALI: Eğer fark çok açıldıysa SPOOFING ilan et
-                if model_drift > 15.0: # 15 birimlik/metrelik sapma tespiti
-                    oran = min(1.0, model_drift / 50.0) # Tehlike Skoru (0.0 ile 1.0 arası)
+                if model_drift > 20.0: 
+                    oran = min(1.0, model_drift / 100.0)
                 else:
-                    # Rüzgar gibi doğal kaymaları önlemek için eğer saldırı yoksa 
-                    # modelin konumunu ara sıra gerçeğe bağlayarak sıfırla.
-                    self.model_gps_x = real_lat
-                    self.model_gps_y = real_lon
+                    self.model_gps_x = self.model_gps_x * 0.90 + real_lat * 0.10
+                    self.model_gps_y = self.model_gps_y * 0.90 + real_lon * 0.10
 
         # ==========================================================
-        # UI VE GRAFİK GÜNCELLEMELERİ
+        # GRAFİK VE VERİ FÜZYONU
         # ==========================================================
-        # Arayüzdeki 8'li grafik için özellikleri ayarlıyoruz (Eski sinyal özelliklerini simüle veya by-pass ediyoruz)
+        # test_senaryosu.csv'den bir satır alıyoruz
+        eski_grafik = next(self.grafik_iterator) 
+        
+        # Karma Veri Vektörü (İlk 6'sı test_senaryosu'ndan, son 2'si datas.csv'deki modelden hesaplanan)
         vektor = [
-            float(telemetry_data.get('GPS_numSat', 12) * 3), # Mean_cno (Mock)
-            float(telemetry_data.get('GPS_hdop', 1.0)),      # std_cno
-            float(model_drift),                              # Model Sapma Değeri (ÇOK ÖNEMLİ)
-            float(model_drift * 0.2),                        # Sapma Standartı
-            float(model_drift * 1.5),                        # Maksimum Sapma
-            float(telemetry_data.get('GPS_numSat', 12)),
-            float(telemetry_data.get('GPS_numSat', 12) + 2),
-            float(1.5 + (oran * 2))                          # Saldırı anında fırlayan oran
+            float(eski_grafik[0]),  # 1. mean_cno
+            float(eski_grafik[1]),  # 2. std_cno
+            float(eski_grafik[2]),  # 3. mean_prRes
+            float(eski_grafik[3]),  # 4. std_prRes
+            float(eski_grafik[4]),  # 5. max_prRes
+            float(eski_grafik[5]),  # 6. num_used
+            float(model_drift),     # 7. SİPER MODEL SAPMASI (datas.csv)
+            float(oran * 100)       # 8. SİPER RİSK ORANI (datas.csv)
         ]
+        
         self.graph_update(oran, vektor)
-
-        # Haritayı İKİ FARKLI NOKTA ile besle (Hem Gerçek Hem Hayalet)
         self.update_map_position(real_lat, real_lon, self.model_gps_x, self.model_gps_y)
         
-        # Yan Panelleri Güncelle
         if hasattr(self, 'settings_page'):
             self.settings_page.update_sys_telemetry(telemetry_data)
 
@@ -243,40 +246,35 @@ class Engine():
 
     def graph_create_add(self):
         from PyQt5.QtWidgets import QLabel
-        
-        # Grafik isimleri ve açıklamaları
+        # Grafikleri isimleri ve özel Neon renkleriyle tanımlıyoruz
         graph_details = [
-            ("Mean_cno", "Ortalama Sinyal Gücü - Sentetik Veri"),
-            ("std_cno", "HDOP Dalgalanması - Konum Hassasiyeti"),
-            ("MODEL_SAPMASI", "SİPER AI - Tahmini Konum ile GPS Arasındaki Mesafe Sapması (KRİTİK)"),
-            ("std_prRes", "Hesaplama Hata Payı - Standart Sapma"),
-            ("max_prRes", "Maksimum Fiziksel Anomaliler - Saldırı Anında Pik Yapar"),
-            ("num_used", "Kullanılan Uydu Sayısı (Gerçek Zamanlı)"),
-            ("num_visible", "Görünür Uydu Sayısı (Gerçek Zamanlı)"),
-            ("SPOOF_RISK", "Yapay Zeka Anomali Katsayısı - Doğal Olmayan Haraket Oranı")
+            ("Mean_cno", "Ort. Sinyal Gücü (test_senaryosu)", '#00e5ff', (0, 229, 255)),
+            ("std_cno", "Sinyal Kararsızlığı (test_senaryosu)", '#00e5ff', (0, 229, 255)),
+            ("mean_prRes", "Pseudorange Hatası (test_senaryosu)", '#bc8cff', (188, 140, 255)),
+            ("std_prRes", "Hata Sapması (test_senaryosu)", '#bc8cff', (188, 140, 255)),
+            ("max_prRes", "Anomali Piki (test_senaryosu)", '#bc8cff', (188, 140, 255)),
+            ("num_used", "Kullanılan Uydu (test_senaryosu)", '#f8b229', (248, 178, 41)),
+            ("MODEL_SAPMASI", "SİPER AI - Tahmini Konum Sapması (Metre) [KRİTİK]", '#ff9100', (255, 145, 0)),
+            ("SPOOF_RISK", "SİPER AI - Siber Saldırı Olasılığı (%) [KRİTİK]", '#ff003c', (255, 0, 60))
         ]
         
         self.graph_list = []
-        for name, desc in graph_details:
+        for name, desc, c_hex, c_rgb in graph_details:
             lbl = QLabel(f"📍 {name} | {desc}")
-            lbl.setStyleSheet("color: #a0a0c0; font-size: 14px; font-weight: bold; margin-top: 15px; margin-bottom: 5px;")
+            lbl.setStyleSheet(f"color: {c_hex}; font-size: 13px; font-weight: bold; margin-top: 15px; margin-bottom: 2px;")
             self.main_layout.addWidget(lbl)
             
-            graph = PgGraph(name, "Zaman")
+            graph = PgGraph(name, "Zaman", c_hex=c_hex, c_rgb=c_rgb)
             self.graph_list.append(graph)
             self.main_layout.addWidget(graph)
 
-
     def graph_update(self, oran, vektor):
-        # Eğer grafik listesi arayüzde oluşturulduysa verileri kaydırarak ekle
         if hasattr(self, 'graph_list'):
             for i, value in enumerate(vektor):
                 if i < len(self.graph_list):
-                    self.graph_list[i].data = np.roll(self.graph_list[i].data, -1)
-                    self.graph_list[i].data[-1] = value
-                    self.graph_list[i].cizgi.setData(self.graph_list[i].data)
+                    # Direct data set yerine yumuşatma fonksiyonunu çağırıyoruz
+                    self.graph_list[i].update_value(value, alpha=0.2)
         
-        # Pencere başlığını ve tehlike durumunu güncelle
         if oran > 0.5:
             self.setWindowTitle(f"UYARI: SALDIRI TESPİT EDİLDİ! (%{oran*100:.2f})")
         else:
